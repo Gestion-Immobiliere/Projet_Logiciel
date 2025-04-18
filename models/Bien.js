@@ -1,4 +1,3 @@
-// models/Bien.js Abdallah
 import mongoose from "mongoose"
 
 const bienSchema = new mongoose.Schema({
