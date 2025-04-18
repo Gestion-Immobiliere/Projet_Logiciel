@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+
+/* Custom Theme Configuration */
+@layer base {
+  :root {
+    --color-primary: #8D7364; /* Couleur principale */
+    --color-secondary: #1A202C; /* Couleur secondaire */
+    --color-background: #F5EFE6; /* Couleur de fond */
+    --color-beige: #f5efe6; /* Background color */
+    --color-brown: #8d7364; /* Text and primary color */
+    --color-accent: #ffcd9e; /* Accent color */
+    --color-dark: #3d3d3d; /* Dark text color */
+    color: var(--color-primary); /* Couleur par défaut pour le texte */
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-primary);
+    font-family: Inter, sans-serif;
+    padding-top: 4rem;
+  }
+}
+
+
