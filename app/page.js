@@ -132,7 +132,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/properties" className="inline-flex items-center px-8 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl">
+            <Link href="/properties" className="inline-flex items-center px-8 py-3 bg-primary-600 text-[#8d7364] rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl">
               Voir toutes nos propriétés <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>

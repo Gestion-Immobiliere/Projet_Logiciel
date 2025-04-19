@@ -37,7 +37,7 @@ export default function PropertyCard({ property }) {
           </p>
 
           <div className="mt-4 flex justify-between items-center">
-            <span className="font-bold text-[#8d7364]">
+            <span className="text-sm text-[#8d7364]">
               {property.price
                 ? `${property.price.toLocaleString()} FCFA/mois`
                 : 'Prix non disponible'}
