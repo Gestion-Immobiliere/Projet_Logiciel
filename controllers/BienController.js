@@ -7,7 +7,7 @@ export const createBien = async (req, res) => {
     console.log("REQ FILES:", req.files)
 console.log("REQ BODY:", req.body)
   try {
-    const { titre, description, prix, statut, type, categorie, localisation } = req.body
+    const { titre, description, prix, statut, type, categorie, localisation, surface, nombreChambres, nombreSallesBain } = req.body
     const images = []
 
     if (req.files) {
@@ -20,7 +20,7 @@ console.log("REQ BODY:", req.body)
     }
 
     const bien = await Bien.create({
-      titre, description, prix, statut, type, categorie, localisation,
+      titre, description, prix, statut, type, categorie, localisation, surface, nombreChambres, nombreSallesBain,
       images,
       postedBy: req.user.id // récupéré via middleware requireAuth
     })
@@ -65,7 +65,8 @@ export const deleteBien = async (req, res) => {
 //filtrer les biens
 export const filtrerBiens = async (req, res) => {
     try {
-      const { type, categorie, localisation, prixMin, prixMax, statut } = req.query
+      const { type, categorie, localisation, prixMin, prixMax, statut } = req.query 
+      const { nombreChambres, nombreSallesBain, surfaceMin, surfaceMax } = req.query
       const page = parseInt(req.query.page) || 1
       const limit = parseInt(req.query.limit) || 10
       const skip = (page - 1) * limit
@@ -76,6 +77,16 @@ export const filtrerBiens = async (req, res) => {
       if (categorie) filtre.categorie = categorie
       if (localisation) filtre.localisation = localisation
       if (statut) filtre.statut = statut
+
+      if (nombreChambres) filtre.nombreChambres = { $gte: nombreChambres }
+      if (nombreSallesBain) filtre.nombreSallesBain = { $gte: nombreSallesBain }
+
+      if (surfaceMin || surfaceMax) {
+           filtre.surface = {}
+      if (surfaceMin) filtre.surface.$gte = surfaceMin
+      if (surfaceMax) filtre.surface.$lte = surfaceMax
+}
+
   
       if (prixMin || prixMax) {
         filtre.prix = {}
@@ -108,7 +119,7 @@ export const filtrerBiens = async (req, res) => {
       const bien = await Bien.findById(req.params.id)
       if (!bien) return res.status(404).json({ message: "Bien non trouvé" })
   
-      const { titre, description, prix, statut, type, categorie, localisation } = req.body
+      const { titre, description, prix, statut, type, categorie, localisation, surface, nombreChambres, nombreSallesBain } = req.body
   
       if (titre) bien.titre = titre
       if (description) bien.description = description
@@ -117,6 +128,10 @@ export const filtrerBiens = async (req, res) => {
       if (type) bien.type = type
       if (categorie) bien.categorie = categorie
       if (localisation) bien.localisation = localisation
+      if (surface) bien.surface = surface
+      if (nombreChambres) bien.nombreChambres = nombreChambres
+      if (nombreSallesBain) bien.nombreSallesBain = nombreSallesBain
+
   
       // Si des fichiers sont envoyés, on remplace les anciennes images
       if (req.files && req.files.length > 0) {

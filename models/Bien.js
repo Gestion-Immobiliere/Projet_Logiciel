@@ -5,6 +5,9 @@ const bienSchema = new mongoose.Schema({
   description:  { type: String },
   prix:         { type: Number, required: true },
   statut:       { type: String, enum: ['disponible', 'réservé', 'vendu'], default: 'disponible' },
+  surface:      { type: Number }, // ✅ superficie en m²
+  nombreChambres:    { type: Number }, // ✅ nombre de chambres
+  nombreSallesBain:  { type: Number },
   type:         { type: mongoose.Schema.Types.ObjectId, ref: 'Type' },
   categorie:    { type: mongoose.Schema.Types.ObjectId, ref: 'Categorie' },
   localisation: { type: mongoose.Schema.Types.ObjectId, ref: 'Localisation' },

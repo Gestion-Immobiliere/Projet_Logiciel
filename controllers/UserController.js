@@ -17,10 +17,11 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id)
     if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" })
 
-    const { username, email, password } = req.body
+    const { username, email, password, telephone } = req.body
 
     if (username) user.username = username
     if (email) user.email = email
+    if (telephone) user.telephone = telephone
     if (password) {
       const hashed = await bcrypt.hash(password, 10)
       user.password = hashed

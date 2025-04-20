@@ -15,11 +15,18 @@ const createToken = (user) => {
 // 👉 Inscription
 export const register = async (req, res) => {
   try {
-    const { username, email, password, role } = req.body
-    const existingUser = await User.findOne({ email })
-    if (existingUser) return res.status(400).json({ message: "Utilisateur déjà existant" })
+    const { username, email, password, confirmPassword, telephone, role } = req.body
 
-    const user = await User.create({ username, email, password, role })
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Les mots de passe ne correspondent pas" })
+    }
+
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ message: "Utilisateur déjà existant" })
+    }
+
+    const user = await User.create({ username, email, password, telephone, role })
     const token = createToken(user)
 
     res.status(201).json({ user, token })
@@ -27,6 +34,7 @@ export const register = async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 }
+
 
 // 👉 Connexion
 export const login = async (req, res) => {
