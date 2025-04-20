@@ -265,67 +265,6 @@ export default function PropertyDetail() {
                 </div>
               </div>
             </div>
-
-            <div className="bg-white p-8 rounded-2xl shadow-sm">
-              <h2 className="text-2xl font-bold text-[#5d4a3a] mb-6 pb-2 border-b border-[#e8d5b5]">
-                Localisation
-              </h2>
-              
-              <div className="aspect-video bg-gray-200 rounded-lg mb-4 flex items-center justify-center text-gray-500">
-                [Carte interactive de {property.neighborhood}]
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-[#f9f5f0] p-4 rounded-lg">
-                  <h4 className="font-medium text-[#5d4a3a] mb-2">Commerces</h4>
-                  <ul className="text-sm text-[#7a6652] space-y-1">
-                    {property.neighborhood === "Almadies" && (
-                      <>
-                        <li>Supermarkté Casino - 5 min</li>
-                        <li>Boulangerie française - 3 min</li>
-                        <li>Restaurant La Calebasse - 2 min</li>
-                      </>
-                    )}
-                    {property.neighborhood === "Plateau" && (
-                      <>
-                        <li>Marché Kermel - 10 min</li>
-                        <li>Centre commercial - 5 min</li>
-                        <li>Café Touba - 2 min</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-                
-                <div className="bg-[#f9f5f0] p-4 rounded-lg">
-                  <h4 className="font-medium text-[#5d4a3a] mb-2">Éducation</h4>
-                  <ul className="text-sm text-[#7a6652] space-y-1">
-                    {property.neighborhood === "Almadies" && (
-                      <>
-                        <li>École Internationale (ISD) - 5 min</li>
-                        <li>Lycée Français - 10 min</li>
-                        <li>Université Amadou Mahtar Mbow - 15 min</li>
-                      </>
-                    )}
-                    {property.neighborhood === "Plateau" && (
-                      <>
-                        <li>École Mariama Niasse - 5 min</li>
-                        <li>Lycée John F. Kennedy - 8 min</li>
-                        <li>Université Cheikh Anta Diop - 10 min</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-                
-                <div className="bg-[#f9f5f0] p-4 rounded-lg">
-                  <h4 className="font-medium text-[#5d4a3a] mb-2">Transports</h4>
-                  <ul className="text-sm text-[#7a6652] space-y-1">
-                    <li>Arrêt de bus - 3 min</li>
-                    <li>Station de taxi - 5 min</li>
-                    <li>Parking public - 2 min</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="space-y-8 lg:min-h-screen">
