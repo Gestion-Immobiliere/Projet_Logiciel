@@ -4,6 +4,8 @@ import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import connectCloudinary from './config/cloudinary.js'
 import authRoutes from './routes/authRoutes.js' // 🔑
+import biensRoutes from "./routes/biensRoutes.js"
+import metaRoutes from "./routes/metaRoutes.js"
 
 const app = express()
 const port = process.env.PORT || 4000
@@ -18,6 +20,8 @@ app.use(cors())
 
 // Routes
 app.use('/api/auth', authRoutes)
+app.use("/api/biens", biensRoutes)
+app.use("/api/meta", metaRoutes)
 
 app.get('/', (req, res) => {
   res.send('API working!!')
