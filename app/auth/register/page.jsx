@@ -14,8 +14,6 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     userType: 'particular',
-    agencyName: '',
-    licenseNumber: ''
   });
   
   const [validation, setValidation] = useState({
@@ -278,55 +276,6 @@ export default function RegisterPage() {
                   <option value="professional">Professionnel</option>
                 </select>
               </div>
-
-              {formData.userType === 'professional' && (
-                <>
-                  <div className="space-y-1">
-                    <label htmlFor="agencyName" className="block text-sm font-medium text-gray-700/90">
-                      Nom de l'agence <span className="text-red-500">*</span>
-                    </label>
-                    <div className={`relative group transition-all duration-300 ${activeField === 'agencyName' ? 'scale-[1.01]' : ''}`}>
-                      <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'agencyName' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
-                        <Home className="h-5 w-5" />
-                      </div>
-                      <input
-                        id="agencyName"
-                        name="agencyName"
-                        type="text"
-                        required
-                        value={formData.agencyName}
-                        onChange={handleChange}
-                        onFocus={() => setActiveField('agencyName')}
-                        onBlur={() => setActiveField('')}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
-                        placeholder="Nom de votre agence"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-700/90">
-                      Numéro de licence <span className="text-red-500">*</span>
-                    </label>
-                    <div className={`relative group transition-all duration-300 ${activeField === 'licenseNumber' ? 'scale-[1.01]' : ''}`}>
-                      <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'licenseNumber' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
-                        <Briefcase className="h-5 w-5" />
-                      </div>
-                      <input
-                        id="licenseNumber"
-                        name="licenseNumber"
-                        type="text"
-                        required
-                        value={formData.licenseNumber}
-                        onChange={handleChange}
-                        onFocus={() => setActiveField('licenseNumber')}
-                        onBlur={() => setActiveField('')}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
-                        placeholder="Votre numéro de licence"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
 
               <div className="space-y-1">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700/90">

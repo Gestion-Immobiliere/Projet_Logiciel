@@ -12,7 +12,6 @@ const navLinks = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/properties', label: 'Explorer', icon: Search },
   { href: '/favorites', label: 'Favoris', icon: Heart },
-  { href: '/premium', label: 'Premium', icon: Star },
 ];
 
 const linkVariants = cva(
@@ -93,11 +92,7 @@ export default function Navbar() {
                 >
                   <Icon className={`h-5 w-5 ${isActive(link.href) ? 'stroke-[2.5]' : ''}`} />
                   <span>{link.label}</span>
-                  {link.href === '/premium' && (
-                    <span className="ml-1 px-2 py-0.5 text-xs font-medium rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-white">
-                      Nouveau
-                    </span>
-                  )}
+
                 </Link>
               );
             })}
@@ -216,11 +211,7 @@ export default function Navbar() {
                       >
                         <Icon className={`h-5 w-5 ${isActive(link.href) ? 'stroke-[2.5]' : ''}`} />
                         {link.label}
-                        {link.href === '/premium' && (
-                          <span className="ml-auto px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-                            Nouveau
-                          </span>
-                        )}
+                        {}
                       </Link>
                     </motion.div>
                   );
