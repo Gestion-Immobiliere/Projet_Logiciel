@@ -43,6 +43,19 @@ export default function FavoritePage() {
     premium: false,
     rating: 4.2
   },
+  {
+    id: 4,
+    title: "Maison familiale à Yoff",
+    price: 3500000,
+    type: "Maison",
+    location: "Yoff, Dakar",
+    bedrooms: 4,
+    bathrooms: 3,
+    surface: 250,
+    images: ["/placeholder4.jpg"],
+    premium: true,
+    rating: 4.7
+  },
   ];
 
   return (
@@ -68,7 +81,9 @@ export default function FavoritePage() {
                     <div className="absolute top-4 right-4 z-10 bg-primary-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                       Favori
                     </div>
-                    <PropertyCard property={property} />
+                    <div className= "[&_.property-title]:line-clamp-1">
+                      <PropertyCard property={property} />
+                    </div>
                   </div>
                 ))}
               </div>
