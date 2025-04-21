@@ -22,4 +22,10 @@
   }
 }
 
+input[type="password"]::-webkit-reveal-password {
+  display: none;
+}
 
+input[type="password"]::-ms-reveal {
+  display: none;
+}

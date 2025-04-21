@@ -28,7 +28,7 @@ export default function PropertyCard({ property }) {
         </div>
 
         <div className="p-4">
-          <h3 className="text-xl font-semibold text-[#8d7364] mb-2">
+          <h3 className="property-title text-xl font-semibold text-[#8d7364] mb-2">
             {property.title || 'Titre non disponible'}
           </h3>
 

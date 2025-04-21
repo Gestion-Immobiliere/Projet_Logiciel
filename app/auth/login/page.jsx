@@ -147,7 +147,7 @@ export default function LoginPage() {
               </div>
 
               <Link 
-                href="/auth/forgot-password" 
+                href="/auth/verify-mail" 
                 className="text-sm font-medium text-primary-600 hover:text-primary-500 transition-colors hover:underline underline-offset-4"
               >
                 Mot de passe oublié ?
