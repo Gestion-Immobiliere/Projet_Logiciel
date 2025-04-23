@@ -2,7 +2,7 @@ import express from "express"
 import {
   addType, getTypes,
   addCategorie, getCategories,
-  addLocalisation, getLocalisations
+  addLocalisation, getLocalisations, getMessages, getContacts
 } from "../controllers/MetaController.js"
 
 import { requireAuth, checkRole } from "../middlewares/authMiddleware.js"
@@ -18,5 +18,11 @@ router.get("/categories", getCategories)
 
 router.post("/localisations", requireAuth, checkRole("admin", "agent"), addLocalisation)
 router.get("/localisations", getLocalisations)
+
+//Route de récupération des messages entre deux utilisateurs
+router.get('/messages/:userId1/:userId2', requireAuth, getMessages);
+
+//Route de récupération des contacts (userID) d'un utilisateur à partir du mail
+router.get('/contacts/:email', requireAuth, getContacts);
 
 export default router
