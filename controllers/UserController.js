@@ -17,9 +17,10 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id)
     if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" })
 
-    const { username, email, password, telephone } = req.body
+    const { nom, prenom, email, password, telephone } = req.body
 
-    if (username) user.username = username
+    if (nom) user.nom = nom
+    if (prenom) user.prenom = prenom
     if (email) user.email = email
     if (telephone) user.telephone = telephone
     if (password) {
