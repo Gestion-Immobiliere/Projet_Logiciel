@@ -15,7 +15,7 @@ const createToken = (user) => {
 // 👉 Inscription
 export const register = async (req, res) => {
   try {
-    const { username, email, password, confirmPassword, telephone, role } = req.body
+    const { nom, prenom, email, password, confirmPassword, telephone, role } = req.body
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Les mots de passe ne correspondent pas" })
@@ -26,7 +26,7 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Utilisateur déjà existant" })
     }
 
-    const user = await User.create({ username, email, password, telephone, role })
+    const user = await User.create({ nom, prenom, email, password, telephone, role })
     const token = createToken(user)
 
     res.status(201).json({ user, token })
