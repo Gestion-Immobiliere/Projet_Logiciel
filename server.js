@@ -6,6 +6,7 @@ import connectCloudinary from './config/cloudinary.js'
 import authRoutes from './routes/authRoutes.js' // 🔑
 import biensRoutes from "./routes/biensRoutes.js"
 import metaRoutes from "./routes/metaRoutes.js"
+import reviewRoutes from "./routes/reviewsRoutes.js"
 import { Server } from 'socket.io'
 import http from 'http';
 
@@ -39,6 +40,7 @@ app.use(cors())
 app.use('/api/auth', authRoutes)
 app.use("/api/biens", biensRoutes)
 app.use("/api/meta", metaRoutes)
+app.use("/api/reviews", reviewRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!!')
