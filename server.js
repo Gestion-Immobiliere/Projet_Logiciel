@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js' // 🔑
 import biensRoutes from "./routes/biensRoutes.js"
 import metaRoutes from "./routes/metaRoutes.js"
 import reviewRoutes from "./routes/reviewsRoutes.js"
+import favouriteRoutes from './routes/favouriteRoutes.js';
 import { Server } from 'socket.io'
 import http from 'http';
 
@@ -33,6 +34,7 @@ connectDB()
 connectCloudinary()
 
 // Middleware
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 app.use(cors())
 
@@ -41,6 +43,7 @@ app.use('/api/auth', authRoutes)
 app.use("/api/biens", biensRoutes)
 app.use("/api/meta", metaRoutes)
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/favourites/", favouriteRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!!')
