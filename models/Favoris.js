@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 
 const favorisSchema = new mongoose.Schema({
   client: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  bien:   { type: mongoose.Schema.Types.ObjectId, ref: 'Bien', required: true },
+  biens: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bien' }],
 }, { timestamps: true })
 
-export default mongoose.model("Favoris", favorisSchema)
+export default mongoose.model("Favoris", favorisSchema);
