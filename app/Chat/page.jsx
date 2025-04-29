@@ -70,7 +70,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 h-screen flex flex-col bg-gray-50">
+    <div className="max-w-2xl mx-auto p-4 h-screen flex flex-col bg-gray-50 mt-16">
       {!isRegistered ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm border border-gray-200">

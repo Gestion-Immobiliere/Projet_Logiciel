@@ -59,7 +59,7 @@ export default function LoginPage() {
         <div className="relative h-40 bg-gradient-to-r from-primary-600 to-primary-700 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/texture.png')] opacity-10 mix-blend-overlay"></div>
           <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-            <h2 className="text-3xl font-bold text-white tracking-tight">Bienvenue à nouveau</h2>
+            <h2 className="text-3xl font-bold  tracking-tight">Bienvenue à nouveau</h2>
             <p className="mt-2 text-primary-100/90">Accédez à votre espace sécurisé</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-primary-500 to-primary-400"></div>

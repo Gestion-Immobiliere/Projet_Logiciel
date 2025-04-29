@@ -1,13 +1,21 @@
-import { useEffect } from 'react';
+'use client';
+import { Toaster as Sonner } from 'sonner';
 
 export function Toaster() {
-  useEffect(() => {
-    console.log('Toaster initialized');
-  }, []);
-
   return (
-    <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4">
-      <p>Notification</p>
-    </div>
+    <Sonner
+      position="top-right"
+      richColors
+      expand
+      closeButton
+      toastOptions={{
+        classNames: {
+          toast: 'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+          description: 'group-[.toast]:text-muted-foreground',
+          actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+          cancelButton: 'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+        },
+      }}
+    />
   );
 }

@@ -13,7 +13,7 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    userType: 'particular',
+    userType: 'Locataire',
   });
   
   const [validation, setValidation] = useState({
@@ -70,7 +70,7 @@ export default function RegisterPage() {
       if (!response.ok) throw new Error(data.message || "Erreur lors de l'inscription");
 
       setSuccess(true);
-      setTimeout(() => router.push('/auth/verify-email'), 1500);
+      setTimeout(() => router.push('/auth/login'), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
@@ -116,12 +116,12 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8f4ed] via-[#f1e8d9] to-[#e8d5b5] p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#f8f4ed] via-[#f1e8d9] to-[#e8d5b5] p-4 pt-16">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
         <div className="relative h-40 bg-gradient-to-r from-primary-600 to-primary-700 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/texture.png')] opacity-10 mix-blend-overlay"></div>
           <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-            <h2 className="text-3xl font-bold text-white tracking-tight">Rejoignez DakarImmo</h2>
+            <h2 className="text-3xl font-bold  tracking-tight">Rejoignez DakarImmo</h2>
             <p className="mt-2 text-primary-100/90">Créez votre compte en quelques étapes</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-primary-400 to-primary-300"></div>
@@ -272,8 +272,8 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   className="block w-full px-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                 >
-                  <option value="particular">Particulier</option>
-                  <option value="professional">Professionnel</option>
+                  <option value="particular">Locataire</option>
+                  <option value="professional">Agent Immobilier</option>
                 </select>
               </div>
 
