@@ -18,9 +18,7 @@
     background-color: var(--color-background);
     color: var(--color-primary);
     font-family: Inter, sans-serif;
-    /* padding-top: 4rem; */
-    margin: 0; 
-    padding: 0; 
+    padding-top: 4rem;
   }
 }
 
@@ -30,71 +28,4 @@ input[type="password"]::-webkit-reveal-password {
 
 input[type="password"]::-ms-reveal {
   display: none;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f5f5dc;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #d4a373;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a98467;
-}
-
-.admin-container {
-  --sidebar-width: 280px;
-}
-
-.admin-layout {
-  background-color: #f8f9fa;
-}
-
-@media (max-width: 768px) {
-  .admin-container {
-    --sidebar-width: 80px;
-  }
-}
-
-@layer components {
-  
-  
-  .admin-sidebar {
-    background-color: var(--color-background);
-    border-right: 1px solid var(--color-dark);
-  }
-  
-  .shadow-xs {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  }
-  
-  .radial-progress {
-    width: 60px;
-    height: 60px;
-  }
-  .dropdown-enter {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  .dropdown-enter-active {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 200ms, transform 200ms;
-  }
-  .dropdown-exit {
-    opacity: 1;
-  }
-  .dropdown-exit-active {
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 200ms, transform 200ms;
-  }
 }
