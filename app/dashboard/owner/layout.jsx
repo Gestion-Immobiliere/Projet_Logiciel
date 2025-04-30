@@ -2,24 +2,24 @@
 import { SessionProvider } from 'next-auth/react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import TenantSidebar from './Sidebar';
-import Navbar from '@/components/dashboard/tenant/Navbar';
+import OwnerSidebar from './Sidebar';
+import Navbar from '@/components/dashboard/owner/Navbar';
 
-export default function AdminLayout({ children }) {
+export default function OwnerLayout({ children }) {
   return (
     <SessionProvider>
-      <ProtectedAdminLayout>{children}</ProtectedAdminLayout>
+      <ProtectedOwnerLayout>{children}</ProtectedOwnerLayout>
     </SessionProvider>
   );
 }
 
-function ProtectedAdminLayout({ children }) {
+function ProtectedOwnerLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <TenantSidebar />
+      <OwnerSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar user={{ name: 'Abdoulaye DIAW', role: 'tenant' }} />
+        <Navbar user={{ name: 'Abdoulaye DIAW', role: 'owner' }} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>

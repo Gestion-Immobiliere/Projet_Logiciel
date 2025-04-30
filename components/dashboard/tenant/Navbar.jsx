@@ -12,7 +12,6 @@ export default function Navbar({ user }) {
     <header className="bg-white border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo/Menu mobile (caché sur desktop) */}
           <div className="flex items-center md:hidden">
             <Link href="/dashboard/tenant" className="text-lg font-bold flex items-center">
               <Home className="mr-2" size={20} />
@@ -27,7 +26,7 @@ export default function Navbar({ user }) {
                 href="/dashboard/tenant" 
                 className={`px-3 py-2 rounded-md text-sm font-medium ${pathname === '/dashboard/tenant' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
               >
-                Tableau de bord
+                Locataire
               </Link>
               <Link 
                 href="/dashboard/tenant/contracts" 
@@ -75,7 +74,7 @@ export default function Navbar({ user }) {
                     Paramètres
                   </Link>
                   <Link 
-                    href="/logout" 
+                    href="/" 
                     className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
                   >
                     <LogOut className="mr-2" size={16} />
