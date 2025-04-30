@@ -4,11 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Avatar from '@/components/ui/avatar';
 
-export default function TenantMessagesPage() {
+export default function MessagesPage() {
   const [conversations, setConversations] = useState([
     {
       id: 1,
-      name: "M. DIOP (Propriétaire)",
+      name: "M. NDIAYE (Propriétaire)",
       lastMessage: "Le loyer a bien été reçu, merci",
       time: "10:30",
       unread: 0,
@@ -43,8 +43,7 @@ export default function TenantMessagesPage() {
   const messagesEndRef = useRef(null);
 
   const filteredConversations = conversations.filter(conv =>
-    conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+    conv.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {
@@ -52,25 +51,32 @@ export default function TenantMessagesPage() {
       const demoMessages = [
         { 
           id: 1, 
-          text: "Bonjour, je vous contacte concernant une fuite dans la salle de bain.", 
-          sender: "tenant", 
-          time: "09:00",
+          text: "Bonjour, je vous contacte concernant le loyer de ce mois-ci.", 
+          sender: "user", 
+          time: "10:00",
           date: "Aujourd'hui"
         },
         { 
           id: 2, 
-          text: "Je vous remercie pour votre message. Nous allons envoyer un plombier demain matin.", 
-          sender: "owner", 
-          time: "09:15",
-          date: "Aujourd'hui",
-          read: true
+          text: "Oui, je vous écoute.", 
+          sender: "recipient", 
+          time: "10:02",
+          date: "Aujourd'hui"
         },
         { 
           id: 3, 
-          text: "Merci pour votre réactivité. Je serai présent à partir de 8h.", 
-          sender: "tenant", 
-          time: "09:20",
+          text: "Le loyer a bien été versé ce matin.", 
+          sender: "user", 
+          time: "10:05",
           date: "Aujourd'hui"
+        },
+        { 
+          id: 4, 
+          text: "Je viens de vérifier, effectivement c'est reçu. Merci !", 
+          sender: "recipient", 
+          time: "10:30",
+          date: "Aujourd'hui",
+          read: true
         },
       ];
       setMessages(demoMessages);
@@ -104,7 +110,7 @@ export default function TenantMessagesPage() {
     const newMsg = {
       id: messages.length + 1,
       text: newMessage,
-      sender: "tenant",
+      sender: "user",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: "Aujourd'hui"
     };
@@ -231,17 +237,17 @@ export default function TenantMessagesPage() {
                     )}
                     <div
                       key={message.id}
-                      className={`flex ${message.sender === 'tenant' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 ${message.sender === 'tenant' 
+                        className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 ${message.sender === 'user' 
                           ? 'bg-blue-500 text-white rounded-br-none' 
                           : 'bg-white border border-gray-200 rounded-bl-none'}`}
                       >
                         <p className="text-sm">{message.text}</p>
-                        <div className={`flex items-center justify-end mt-1 space-x-1 ${message.sender === 'tenant' ? 'text-blue-100' : 'text-gray-400'}`}>
+                        <div className={`flex items-center justify-end mt-1 space-x-1 ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
                           <span className="text-xs">{message.time}</span>
-                          {message.sender === 'tenant' && (
+                          {message.sender === 'user' && (
                             message.read ? (
                               <span className="text-xs">✓✓</span>
                             ) : (

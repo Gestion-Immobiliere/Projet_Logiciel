@@ -30,7 +30,7 @@ export default function Navbar({ user }) {
     <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30">
       <div className="px-6 py-3 flex justify-between items-center"> 
         <div>
-          <span className="font-semibold text-gray-900 text-lg">Administrateur</span>
+          <span className="font-semibold text-gray-900 text-lg">Tableau de bord</span>
         </div>
 
         <div className="flex items-center space-x-4">
@@ -64,7 +64,7 @@ export default function Navbar({ user }) {
                   <div className="py-1">
                     <div className="px-4 py-2">
                       <p className="text-sm font-medium">{user?.name || 'Utilisateur'}</p>
-                      <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
+                      <p className="text-xs text-gray-500">{user?.email || 'proprietaire@example.com'}</p>
                     </div>
                     
                     <Link href="/profile" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">

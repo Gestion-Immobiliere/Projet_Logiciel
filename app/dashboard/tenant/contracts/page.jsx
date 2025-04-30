@@ -17,10 +17,10 @@ export default function ContractsPage() {
       fileSize: "2.4 MB",
       details: {
         proprietaire: "M. Dupont",
-        adresse: "12 Rue de la Paix, 75002 Paris",
+        adresse: "12 Rue de la Paix, Dakar",
         duree: "3 ans (2023-2026)",
-        loyer: "750€/mois",
-        charges: "120€/mois"
+        loyer: "750000/mois",
+        charges: "120000/mois"
       }
     },
     {
