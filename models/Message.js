@@ -2,10 +2,11 @@
 import mongoose from "mongoose"
 
 const messageSchema = new mongoose.Schema({
-  sender:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  content:  { type: String, required: true },
-  bien:     { type: mongoose.Schema.Types.ObjectId, ref: 'Bien' }, // optionnel
+  content: { type: String, required: true },
+  room: { type: String },// optionnel
+  bien: { type: mongoose.Schema.Types.ObjectId, ref: 'Bien' }, // optionnel
 }, { timestamps: true })
 
 export default mongoose.model("Message", messageSchema)
