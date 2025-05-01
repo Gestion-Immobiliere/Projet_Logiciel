@@ -7,13 +7,13 @@ import Link from 'next/link';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
+    nom: '',
+    prenom: '',
+    adresseMail: '',
+    numTel: '',
+    motDePasse: '',
     confirmPassword: '',
-    userType: 'Locataire',
+    role: 'locataire',
   });
   
   const [validation, setValidation] = useState({
@@ -37,16 +37,16 @@ export default function RegisterPage() {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     let strength = 0;
     
-    if (formData.password.length >= 8) strength += 1;
-    if (/[A-Z]/.test(formData.password)) strength += 1;
-    if (/[0-9]/.test(formData.password)) strength += 1;
-    if (/[@$!%*?&]/.test(formData.password)) strength += 1;
+    if (formData.motDePasse.length >= 8) strength += 1;
+    if (/[A-Z]/.test(formData.motDePasse)) strength += 1;
+    if (/[0-9]/.test(formData.motDePasse)) strength += 1;
+    if (/[@$!%*?&]/.test(formData.motDePasse)) strength += 1;
     
     setValidation({
       passwordStrength: strength,
-      passwordMatch: formData.password === formData.confirmPassword && formData.password !== '',
-      emailValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email),
-      phoneValid: /^[0-9]{9,15}$/.test(formData.phone.replace(/\D/g, ''))
+      passwordMatch: formData.motDePasse === formData.confirmPassword && formData.motDePasse !== '',
+      emailValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adresseMail),
+      phoneValid: /^[0-9]{9,15}$/.test(formData.numTel.replace(/\D/g, ''))
     });
   }, [formData]);
 
@@ -56,12 +56,12 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('http://127.0.0.1:8000/api/utilisateurs/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          phone: formData.phone.replace(/\D/g, '')
+          numTel: formData.numTel.replace(/\D/g, '')
         }),
       });
 
@@ -88,7 +88,7 @@ export default function RegisterPage() {
     const formattedValue = value
       .slice(0, 9) 
       .replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3');
-    setFormData((prev) => ({ ...prev, phone: formattedValue }));
+    setFormData((prev) => ({ ...prev, numTel: formattedValue }));
   };
 
 
@@ -116,38 +116,18 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#f8f4ed] via-[#f1e8d9] to-[#e8d5b5] p-4 pt-16">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8f4ed] via-[#f1e8d9] to-[#e8d5b5] p-4">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
         <div className="relative h-40 bg-gradient-to-r from-primary-600 to-primary-700 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/texture.png')] opacity-10 mix-blend-overlay"></div>
           <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-            <h2 className="text-3xl font-bold  tracking-tight">Rejoignez DakarImmo</h2>
+            <h2 className="text-3xl font-bold text-white tracking-tight">Rejoignez DakarImmo</h2>
             <p className="mt-2 text-primary-100/90">Créez votre compte en quelques étapes</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-primary-400 to-primary-300"></div>
         </div>
 
         <div className="p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {success && (
-            <div className="md:col-span-2 animate-fade-in-up rounded-xl bg-green-50/90 backdrop-blur-sm p-4 border border-green-200 shadow-sm">
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                <p className="text-green-700 font-medium">
-                  Inscription réussie ! Redirection en cours...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="md:col-span-2 animate-fade-in-up rounded-xl bg-red-50/90 backdrop-blur-sm p-4 border border-red-200 shadow-sm">
-              <div className="flex items-center">
-                <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                <p className="text-red-700 font-medium">{error}</p>
-              </div>
-            </div>
-          )}
-
           <form 
             ref={formRef}
             onSubmit={handleSubmit} 
@@ -155,21 +135,21 @@ export default function RegisterPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="nom" className="block text-sm font-medium text-gray-700/90">
                   Prénom <span className="text-red-500">*</span>
                 </label>
-                <div className={`relative group transition-all duration-300 ${activeField === 'firstName' ? 'scale-[1.01]' : ''}`}>
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'firstName' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
+                <div className={`relative group transition-all duration-300 ${activeField === 'nom' ? 'scale-[1.01]' : ''}`}>
+                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'nom' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
                     <User className="h-5 w-5" />
                   </div>
                   <input
-                    id="firstName"
-                    name="firstName"
+                    id="nom"
+                    name="nom"
                     type="text"
                     required
-                    value={formData.firstName}
+                    value={formData.nom}
                     onChange={handleChange}
-                    onFocus={() => setActiveField('firstName')}
+                    onFocus={() => setActiveField('nom')}
                     onBlur={() => setActiveField('')}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                     placeholder="Votre prénom"
@@ -178,18 +158,18 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="prenom" className="block text-sm font-medium text-gray-700/90">
                   Nom <span className="text-red-500">*</span>
                 </label>
-                <div className={`relative group transition-all duration-300 ${activeField === 'lastName' ? 'scale-[1.01]' : ''}`}>
+                <div className={`relative group transition-all duration-300 ${activeField === 'prenom' ? 'scale-[1.01]' : ''}`}>
                   <input
-                    id="lastName"
-                    name="lastName"
+                    id="prenom"
+                    name="prenom"
                     type="text"
                     required
-                    value={formData.lastName}
+                    value={formData.prenom}
                     onChange={handleChange}
-                    onFocus={() => setActiveField('lastName')}
+                    onFocus={() => setActiveField('prenom')}
                     onBlur={() => setActiveField('')}
                     className="block w-full px-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                     placeholder="Votre nom"
@@ -198,26 +178,26 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="adresseMail" className="block text-sm font-medium text-gray-700/90">
                   Email <span className="text-red-500">*</span>
                 </label>
-                <div className={`relative group transition-all duration-300 ${activeField === 'email' ? 'scale-[1.01]' : ''}`}>
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'email' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
+                <div className={`relative group transition-all duration-300 ${activeField === 'adresseMail' ? 'scale-[1.01]' : ''}`}>
+                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'adresseMail' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
                     <Mail className="h-5 w-5" />
                   </div>
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
+                    id="adresseMail"
+                    name="adresseMail"
+                    type="adresseMail"
                     required
-                    value={formData.email}
+                    value={formData.adresseMail}
                     onChange={handleChange}
-                    onFocus={() => setActiveField('email')}
+                    onFocus={() => setActiveField('adresseMail')}
                     onBlur={() => setActiveField('')}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                     placeholder="votre@email.com"
                   />
-                  {formData.email && (
+                  {formData.adresseMail && (
                     <div className="absolute right-3 top-3">
                       {validation.emailValid ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
@@ -230,26 +210,26 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="numTel" className="block text-sm font-medium text-gray-700/90">
                   Téléphone <span className="text-red-500">*</span>
                 </label>
-                <div className={`relative group transition-all duration-300 ${activeField === 'phone' ? 'scale-[1.01]' : ''}`}>
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'phone' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
+                <div className={`relative group transition-all duration-300 ${activeField === 'numTel' ? 'scale-[1.01]' : ''}`}>
+                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'numTel' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
                     <Phone className="h-5 w-5" />
                   </div>
                   <input
-                    id="phone"
-                    name="phone"
+                    id="numTel"
+                    name="numTel"
                     type="tel"
                     required
-                    value={formData.phone}
+                    value={formData.numTel}
                     onChange={handlePhoneChange}
-                    onFocus={() => setActiveField('phone')}
+                    onFocus={() => setActiveField('numTel')}
                     onBlur={() => setActiveField('')}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                     placeholder="77 123 45 67"
                   />
-                  {formData.phone && (
+                  {formData.numTel && (
                     <div className="absolute right-3 top-3">
                       {validation.phoneValid ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
@@ -262,38 +242,38 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="userType" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700/90">
                   Vous êtes <span className="text-red-500">*</span>
                 </label>
                 <select
-                  id="userType"
-                  name="userType"
-                  value={formData.userType}
+                  id="role"
+                  name="role"
+                  value={formData.role}
                   onChange={handleChange}
                   className="block w-full px-3 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                 >
-                  <option value="particular">Locataire</option>
-                  <option value="professional">Agent Immobilier</option>
+                  <option value="locataire">Locataire</option>
+                  <option value="agent_immobilier">Agent Immobilier</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700/90">
+                <label htmlFor="motDePasse" className="block text-sm font-medium text-gray-700/90">
                   Mot de passe <span className="text-red-500">*</span>
                 </label>
-                <div className={`relative group transition-all duration-300 ${activeField === 'password' ? 'scale-[1.01]' : ''}`}>
-                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'password' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
+                <div className={`relative group transition-all duration-300 ${activeField === 'motDePasse' ? 'scale-[1.01]' : ''}`}>
+                  <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-300 ${activeField === 'motDePasse' ? 'text-primary-500 -translate-y-0.5' : 'text-gray-400'}`}>
                     <Lock className="h-5 w-5" />
                   </div>
                   <input
-                    id="password"
-                    name="password"
+                    id="motDePasse"
+                    name="motDePasse"
                     type={showPassword ? "text" : "password"}
                     required
                     minLength={8}
-                    value={formData.password}
+                    value={formData.motDePasse}
                     onChange={handleChange}
-                    onFocus={() => setActiveField('password')}
+                    onFocus={() => setActiveField('motDePasse')}
                     onBlur={() => setActiveField('')}
                     className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl bg-white/95 focus:ring-2 focus:ring-primary-400/50 focus:border-transparent shadow-sm transition-all duration-300 hover:border-gray-300"
                     placeholder="••••••••"
@@ -400,6 +380,26 @@ export default function RegisterPage() {
               </button>
             </div>
           </form>
+          {success && (
+            <div className="md:col-span-2 animate-fade-in-up rounded-xl bg-green-50/90 backdrop-blur-sm p-4 border border-green-200 shadow-sm">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <p className="text-green-700 font-medium">
+                  Inscription réussie ! Redirection en cours...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="md:col-span-2 animate-fade-in-up rounded-xl bg-red-50/90 backdrop-blur-sm p-4 border border-red-200 shadow-sm">
+              <div className="flex items-center">
+                <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+            </div>
+          )}
+
 
           <div className="md:col-span-2 pt-6 text-center">
             <p className="text-sm text-gray-600/90">
