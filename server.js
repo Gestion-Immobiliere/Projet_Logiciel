@@ -6,12 +6,11 @@ import connectCloudinary from './config/cloudinary.js'
 import authRoutes from './routes/authRoutes.js' // 🔑
 import biensRoutes from "./routes/biensRoutes.js"
 import metaRoutes from "./routes/metaRoutes.js"
+import dashboardRoutes from "./routes/dashboardRoutes.js"
 import reviewRoutes from "./routes/reviewsRoutes.js"
 import favouriteRoutes from './routes/favouriteRoutes.js';
 import { Server } from 'socket.io'
 import http from 'http';
-
-// import Message from './models/Message.js'
 import socket from './socket/socket.js'
 
 const port = process.env.PORT || 4000
@@ -42,6 +41,7 @@ app.use(cors())
 app.use('/api/auth', authRoutes)
 app.use("/api/biens", biensRoutes)
 app.use("/api/meta", metaRoutes)
+app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/favourites/", favouriteRoutes);
 
