@@ -5,10 +5,17 @@ import { requireAuth, checkRole } from "../middlewares/authMiddleware.js"
 
 
 const router = express.Router()
-const upload = multer({ dest: "uploads/" })
+const storage = multer({ dest: "uploads/" })
+
+const multipleUpload = storage.fields([
+  {name : "images", maxCount: 5},
+  {name : "contrat", maxCount: 1},
+
+])
+
 
 // Seuls les agents/admin peuvent créer un bien
-router.post("/", requireAuth, checkRole("admin", "agent"), upload.array("images"), createBien)
+router.post("/", requireAuth, checkRole("admin", "agent"), multipleUpload, createBien)
 
 router.get("/", getAllBiens)
 router.get("/filtre", filtrerBiens)
@@ -16,7 +23,7 @@ router.put(
     "/:id",
     requireAuth,
     checkRole("admin", "agent"),
-    upload.array("images"), // si on veut gérer aussi le remplacement des images
+    multipleUpload, // si on veut gérer aussi le remplacement des images
     updateBien
   )
 router.get("/:id", getBienById)

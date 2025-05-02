@@ -4,45 +4,59 @@ import fs from "fs"
 import User from "../models/User.js"
 import stripe from "../config/stripe.js"
 
-// 🔹 Créer un bien
 export const createBien = async (req, res) => {
   console.log("REQ FILES:", req.files)
   console.log("REQ BODY:", req.body)
+
   try {
     const { titre, description, prix, statut, type, categorie, localisation, surface, nombreChambres, nombreSallesBain } = req.body
-    const id = req.user.id;
-    const role = req.user.role;
+    const id = req.user.id
+    const role = req.user.role
+
     if (!titre || !prix) {
-      return res.status(400).json({ error: 'champ obligatoire manquant ou invalides' });
+      return res.status(400).json({ error: 'champ obligatoire manquant ou invalides' })
     }
 
     const images = []
+    let contratUrl = null
 
-    if (req.files) {
-      for (const file of req.files) {
+    // 🔹 Upload images
+    if (req.files?.images) {
+      for (const file of req.files.images) {
         const result = await cloudinary.v2.uploader.upload(file.path)
         images.push(result.secure_url)
-        fs.unlinkSync(file.path) // supprime localement
+        fs.unlinkSync(file.path)
       }
-
     }
 
+    // 🔹 Upload contrat PDF
+    if (req.files?.contrat) {
+      const pdfFile = req.files.contrat[0]
+      const result = await cloudinary.v2.uploader.upload(pdfFile.path, {
+        resource_type: "raw"
+      })
+      contratUrl = result.secure_url
+      fs.unlinkSync(pdfFile.path)
+    }
+
+    // 🔹 Stripe
     const createdProduct = await stripe.products.create({
       name: titre,
       description: description || '',
       images: images?.length ? images : undefined,
-    });
+    })
 
     const createdPrice = await stripe.prices.create({
       product: createdProduct.id,
       unit_amount: prix * 100,
       currency: 'xof',
-    });
+    })
 
     const bienData = {
       titre, description, prix, statut, type, categorie, localisation,
       surface, nombreChambres, nombreSallesBain,
       images,
+      contrat: contratUrl, // ✅ ajout ici
       stripeProductId: createdProduct.id,
       stripePriceId: createdPrice.id
     }
@@ -54,12 +68,11 @@ export const createBien = async (req, res) => {
     const bien = await Bien.create(bienData)
     res.status(201).json(bien)
 
-
-
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 }
+
 
 // 🔹 Récupérer tous les biens
 export const getAllBiens = async (req, res) => {
@@ -179,6 +192,17 @@ export const updateBien = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
+
+  // 🔹 Remplacer contrat si envoyé
+if (req.files?.contrat) {
+  const pdfFile = req.files.contrat[0]
+  const result = await cloudinary.v2.uploader.upload(pdfFile.path, {
+    resource_type: "raw"
+  })
+  bien.contrat = result.secure_url
+  fs.unlinkSync(pdfFile.path)
+}
+
 }
 
 
