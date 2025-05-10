@@ -22,7 +22,6 @@ const bienSchema = new mongoose.Schema({
   localisation: { type: mongoose.Schema.Types.ObjectId, ref: 'Localisation' },
   images: [{ type: String }], // URLs Cloudinary
   contrat: { type: String }, // URL Cloudinary du fichier PDF
-  postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true })
 
 export default mongoose.model("Bien", bienSchema)
