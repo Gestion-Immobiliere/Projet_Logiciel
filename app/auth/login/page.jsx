@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from "sonner"
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,36 +23,44 @@ export default function LoginPage() {
     return () => setIsMounted(false);
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!isMounted) return;
-    
-    setError('');
-    setLoading(true);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!isMounted) return;
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+  setError('');
+  setLoading(true);
 
-      const data = await response.json();
+  try {
+    const response = await fetch('http://localhost:4000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Identifiants incorrects');
-      }
+    const data = await response.json();
 
-      login(data.user, data.token);
-      router.push('/dashboard');
-    } catch (err) {
-      if (isMounted) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      }
-    } finally {
-      if (isMounted) setLoading(false);
+    if (!response.ok) {
+      throw new Error(data.message || 'Identifiants incorrects');
     }
-  };
+
+    login(data.user, data.token);
+
+    toast({
+      title: 'Connexion réussie ✅',
+      description: `Bienvenue ${data.user.nom || ''} !`,
+    });
+
+    setTimeout(() => router.push('/'), 1500);
+  } catch (err) {
+    toast({
+      title: 'Erreur de connexion',
+      description: err instanceof Error ? err.message : 'Une erreur est survenue',
+      variant: 'destructive',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8f4ed] via-[#f1e8d9] to-[#e8d5b5] p-4">
