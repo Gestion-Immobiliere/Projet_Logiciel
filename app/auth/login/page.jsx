@@ -45,18 +45,17 @@ export default function LoginPage() {
 
     login(data.user, data.token);
 
-    toast({
-      title: 'Connexion réussie ✅',
+    toast("Connexion réussie ✅",{
+    
       description: `Bienvenue ${data.user.nom || ''} !`,
     });
 
     setTimeout(() => router.push('/'), 1500);
   } catch (err) {
-    toast({
-      title: 'Erreur de connexion',
-      description: err instanceof Error ? err.message : 'Une erreur est survenue',
-      variant: 'destructive',
-    });
+   toast("Erreur de connexion", {
+  description: err instanceof Error ? err.message : "Une erreur est survenue"
+});
+
   } finally {
     setLoading(false);
   }

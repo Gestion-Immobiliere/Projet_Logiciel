@@ -82,16 +82,14 @@ export default function RegisterPage() {
 
     if (!response.ok) throw new Error(data.message || "Erreur lors de l'inscription");
 
-    toast({
-      title: "Inscription réussie 🎉",
-      description: "Redirection vers la page de connexion...",
-      variant: "default"
-    })
+   toast("Inscription réussie 🎉", {
+  description: "Redirection vers la page de connexion..."
+});
+
 
     setTimeout(() => router.push('/auth/login'), 2000);
   } catch (err) {
-    toast({
-      title: "Erreur",
+    toast("Erreur",{
       description: err instanceof Error ? err.message : "Une erreur est survenue",
       variant: "destructive"
     })
