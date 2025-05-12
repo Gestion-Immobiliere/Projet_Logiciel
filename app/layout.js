@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthProvider } from "../contexts/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
@@ -22,7 +23,7 @@ export default function RootLayout({ children }) {
           <main className="flex-1">
             {children}
           </main>
-
+          <Toaster/>
           {!isAdminRoute && <Footer />}
         </AuthProvider>
       </body>
