@@ -22,6 +22,11 @@ const tenantLinks = [
     icon: <FiHome size={18} />, 
     label: 'Tableau de bord' 
   },
+  {
+    href: '/dashboard/tenant/properties',
+    icon: <FiHome size={18} />,
+    label: 'Propriétés',
+  },
   { 
     href: '/dashboard/tenant/favorites', 
     icon: <FiHeart size={18} />, 

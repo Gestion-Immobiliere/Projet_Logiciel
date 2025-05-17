@@ -1,15 +1,10 @@
 'use client';
-import { SessionProvider } from 'next-auth/react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import OwnerSidebar from './Sidebar';
 import Navbar from '@/components/dashboard/owner/Navbar';
 
 export default function OwnerLayout({ children }) {
   return (
-    <SessionProvider>
       <ProtectedOwnerLayout>{children}</ProtectedOwnerLayout>
-    </SessionProvider>
   );
 }
 

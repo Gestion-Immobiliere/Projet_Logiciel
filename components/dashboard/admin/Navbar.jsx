@@ -34,15 +34,6 @@ export default function Navbar({ user }) {
         </div>
 
         <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-gray-100 relative">
-            <FiBell className="text-gray-600" />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
-          
-          <button className="p-2 rounded-full hover:bg-gray-100">
-            <FiHelpCircle className="text-gray-600" />
-          </button>
-
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -67,12 +58,8 @@ export default function Navbar({ user }) {
                       <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
                     </div>
                     
-                    <Link href="/profile" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
+                    <Link href="/dashboard/admin/profile" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
                       <FiUser className="mr-2" /> Profil
-                    </Link>
-                    
-                    <Link href="/settings" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
-                      <FiSettings className="mr-2" /> Paramètres
                     </Link>
                     
                     <button
