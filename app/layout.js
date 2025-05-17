@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { AuthProvider } from "../contexts/AuthContext";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from "@/components/ui/sonner";
+
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
@@ -24,7 +26,7 @@ export default function RootLayout({ children }) {
           <main className="flex-1">
             {children}
           </main>
-
+          <Toaster/>
           {!isAdminRoute && <Footer />}
 
           <ToastContainer

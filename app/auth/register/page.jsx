@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, Phone, Home, Briefcase, Eye, EyeOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from "sonner"
+
+
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -51,32 +54,50 @@ export default function RegisterPage() {
   }, [formData]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/utilisateurs/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          numTel: formData.numTel.replace(/\D/g, '')
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.message || "Erreur lors de l'inscription");
-
-      setSuccess(true);
-      setTimeout(() => router.push('/auth/login'), 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
-    } finally {
-      setLoading(false);
+  try {
+    const roleMap = {
+      locataire: 'client',
+      agent_immobilier: 'agent'
     }
-  };
+
+    const response = await fetch('http://localhost:4000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nom: formData.nom,
+        prenom: formData.prenom,
+        email: formData.adresseMail,
+        telephone: formData.numTel.replace(/\D/g, ''),
+        password: formData.motDePasse,
+        confirmPassword: formData.confirmPassword,
+        role: roleMap[formData.role] || 'client'
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.message || "Erreur lors de l'inscription");
+
+   toast("Inscription réussie 🎉", {
+  description: "Redirection vers la page de connexion..."
+});
+
+
+    setTimeout(() => router.push('/auth/login'), 2000);
+  } catch (err) {
+    toast("Erreur",{
+      description: err instanceof Error ? err.message : "Une erreur est survenue",
+      variant: "destructive"
+    })
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
