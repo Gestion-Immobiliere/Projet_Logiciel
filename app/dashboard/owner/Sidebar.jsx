@@ -23,7 +23,6 @@ const ownerLinks = [
   { href: '/dashboard/owner/payments', icon: <FiDollarSign size={18} />, label: 'Paiements' },
   { href: '/dashboard/owner/contracts', icon: <FiFileText size={18} />, label: 'Contrats' },
   { href: '/dashboard/owner/messages', icon: <FiMessageSquare size={18} />, label: 'Messages' },
-  { href: '/dashboard/owner/settings', icon: <FiSettings size={18} />, label: 'Paramètres' }
 ];
 
 export default function OwnerSidebar() {

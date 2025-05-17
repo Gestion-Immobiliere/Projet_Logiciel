@@ -1,15 +1,10 @@
 'use client';
-import { SessionProvider } from 'next-auth/react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import AdminSidebar from './Sidebar';
-import Navbar from '@/components/dashboard/shared/Navbar';
+import Navbar from '@/components/dashboard/admin/Navbar';
 
 export default function AdminLayout({ children }) {
   return (
-    <SessionProvider>
       <ProtectedAdminLayout>{children}</ProtectedAdminLayout>
-    </SessionProvider>
   );
 }
 

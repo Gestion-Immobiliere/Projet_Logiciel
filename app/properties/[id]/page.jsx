@@ -1,83 +1,108 @@
 'use client';
-import { useParams } from 'next/navigation';
-import Image from 'next/image';
-import { MapPin, Ruler, BedDouble, Bath, Calendar, Heart, Share2, ChevronLeft, ChevronRight, Star, Phone, Mail, User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { MapPin, Star, Ruler, BedDouble, Bath, Calendar, Users, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import PropertyGallery from '@/components/PropertyGallery';
+import AmenitiesList from '@/components/AmenitiesList';
+import HostProfile from '@/components/HostProfile';
 
-export default function PropertyDetail() {
-  const params = useParams();
-  const { id } = params;
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [favorited, setFavorited] = useState(false);
-  const [showContactForm, setShowContactForm] = useState(false);
+export default function PropertyPage({ params }) {
+  const searchParams = useSearchParams();
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedDates, setSelectedDates] = useState({
+    start: searchParams.get('startDate') || '',
+    end: searchParams.get('endDate') || ''
+  });
+  const [guests, setGuests] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
 
-  const properties = [
-    {
-      id: "1",
-      title: "Villa Prestige aux Almadies",
-      price: 45000000,
-      type: "Villa",
-      location: "Almadies, Dakar",
-      description: "Cette magnifique villa contemporaine de 5 chambres offre un cadre de vie exceptionnel avec vue directe sur l'océan. Récemment rénovée avec des matériaux haut de gamme, elle allie élégance et confort moderne.",
-      extendedDescription: "La propriété comprend un vaste jardin paysagé avec piscine à débordement, une terrasse panoramique, un garage pour 3 voitures et des espaces de vie spacieux. Idéalement située dans le quartier résidentiel le plus prisé de Dakar, à proximité des écoles internationales et des commodités.",
-      bedrooms: 5,
-      bathrooms: 4,
-      surface: 450,
-      year: 2021,
-      features: ["Piscine à débordement", "Jardin paysagé", "Système de sécurité", "Climatisation centrale", "Cuisine équipée", "Domotique", "Garage 3 voitures", "Terrasse panoramique"],
-      images: ["/villa-almadies-1.jpg", "/villa-almadies-2.jpg", "/villa-almadies-3.jpg"],
-      neighborhood: "Almadies",
-      rating: 4.8,
-      agent: {
-        name: "Mamadou Diop",
-        phone: "+221 77 123 45 67",
-        email: "m.diop@dakarimmo.sn",
-        yearsOfExperience: 8
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        const response = await fetch(`/api/properties/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Property not found');
+        }
+        const data = await response.json();
+        setProperty(data);
+        
+        // Check if property is in favorites
+        const favResponse = await fetch('/api/favorites/check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ property_id: params.id })
+        });
+        if (favResponse.ok) {
+          const favData = await favResponse.json();
+          setIsFavorite(favData.isFavorite);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    },
-    {
-      id: "2",
-      title: "Appartement Standing au Plateau",
-      price: 25000000,
-      type: "Appartement",
-      location: "Plateau, Dakar",
-      description: "Exceptionnel appartement de 3 chambres dans une résidence sécurisée avec services haut de gamme. Vue imprenable sur la ville et l'océan depuis les larges baies vitrées.",
-      extendedDescription: "Cet appartement lumineux offre des finitions premium, des espaces généreux et des services résidentiels incluant piscine, salle de sport et conciergerie 24/7. Situé au cœur du quartier des affaires, à deux pas des ministères et des grandes entreprises.",
-      bedrooms: 3,
-      bathrooms: 2,
-      surface: 180,
-      year: 2019,
-      features: ["Vue mer", "Ascenseur", "Parking sécurisé", "Conciergerie", "Salle de sport", "Piscine commune", "Baies vitrées", "Cuisine moderne"],
-      images: ["/appartement-plateau-1.jpg", "/appartement-plateau-2.jpg"],
-      neighborhood: "Plateau",
-      rating: 4.5,
-      agent: {
-        name: "Aminata Ndiaye",
-        phone: "+221 77 765 43 21",
-        email: "a.ndiaye@dakarimmo.sn",
-        yearsOfExperience: 5
+    };
+
+    fetchProperty();
+  }, [params.id]);
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
+  };
+
+  const calculateTotal = () => {
+    if (!selectedDates.start || !selectedDates.end || !property) return 0;
+    
+    const start = new Date(selectedDates.start);
+    const end = new Date(selectedDates.end);
+    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    return nights * property.pricePerNight;
+  };
+
+  const handleReservation = () => {
+    // Redirect to reservation page with dates and guests
+    window.location.href = `/properties/${params.id}/reservation?startDate=${selectedDates.start}&endDate=${selectedDates.end}&guests=${guests}`;
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const response = await fetch('/api/favorites/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ property_id: params.id })
+      });
+      
+      if (response.ok) {
+        setIsFavorite(!isFavorite);
       }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
     }
-  ];
+  };
 
-  if (!id) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f5f0]">
-        <p className="text-lg text-[#5d4a3a]">Chargement en cours...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8d7364]"></div>
       </div>
     );
   }
 
-  const property = properties.find((prop) => prop.id === id);
-
-  if (!property) {
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f5f0]">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-          <p className="text-xl text-red-500 mb-4">Propriété introuvable</p>
-          <Link href="/properties" className="inline-flex items-center text-[#8d7364] hover:text-[#6b594e]">
-            <ChevronLeft className="h-5 w-5 mr-2" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-[#5d4a3a] mb-4">Propriété non trouvée</h2>
+          <p className="text-[#7a6652] mb-6">{error}</p>
+          <Link href="/properties" className="bg-[#8d7364] text-white px-6 py-2 rounded-lg">
             Retour aux propriétés
           </Link>
         </div>
@@ -85,300 +110,163 @@ export default function PropertyDetail() {
     );
   }
 
-  const handlePrevImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === 0 ? property.images.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === property.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f9f5f0] to-[#e8d5b5]">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <Link 
-          href="/properties" 
-          className="inline-flex items-center text-[#5d4a3a] hover:text-[#8d7364] transition-colors"
-        >
-          <ChevronLeft className="h-5 w-5 mr-2" />
-          Retour aux propriétés
-        </Link>
+    <div className="min-h-screen bg-[#f9f5f0]">
+      {/* Property Header */}
+      <div className="bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-[#5d4a3a]">{property.title}</h1>
+              <div className="flex items-center mt-2 text-[#7a6652]">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span>{property.location}</span>
+              </div>
+            </div>
+            <button 
+              onClick={toggleFavorite}
+              className="p-2 rounded-full hover:bg-[#f5efe6]"
+              aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            >
+              <Heart 
+                className={`h-6 w-6 ${isFavorite ? 'fill-[#8d7364] text-[#8d7364]' : 'text-[#8d7364]'}`} 
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
+      {/* Property Gallery */}
+      <PropertyGallery images={property.images} />
+
+      {/* Property Details */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#5d4a3a] mb-2">
-              {property.title}
-              {property.type === "Villa" && (
-                <span className="ml-3 bg-[#8d7364] text-white text-sm px-3 py-1 rounded-full align-middle">
-                  Premium
-                </span>
-              )}
-            </h1>
-            <div className="flex items-center text-[#7a6652]">
-              <MapPin className="h-5 w-5 mr-1 text-[#8d7364]" />
-              <span>{property.location}</span>
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setFavorited(!favorited)}
-              className={`p-3 rounded-full ${favorited ? 'bg-red-50 text-red-500' : 'bg-white text-gray-600'} shadow-sm hover:shadow-md transition-all`}
-            >
-              <Heart className={`h-5 w-5 ${favorited ? 'fill-current' : ''}`} />
-            </button>
-            <button className="p-3 rounded-full bg-white text-gray-600 shadow-sm hover:shadow-md transition-all">
-              <Share2 className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-          <p className="text-2xl md:text-3xl font-bold text-[#8d7364]">
-            {formatPrice(property.price)}
-            <span className="text-lg text-[#7a6652] font-normal"> / mois</span>
-          </p>
-          
-          <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
-            <div className="flex mr-2">
-              {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  className={`h-5 w-5 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                />
-              ))}
-            </div>
-            <span className="text-[#5d4a3a]">{property.rating}</span>
-          </div>
-        </div>
-
-        <div className="relative mb-8 rounded-2xl overflow-hidden shadow-xl bg-white">
-          <div className="relative h-64"> 
-            <Image
-              src={property.images[currentImageIndex]}
-              alt={property.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-          
-          {property.images.length > 1 && (
-            <>
-              <button 
-                onClick={handlePrevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-md transition-all"
-              >
-                <ChevronLeft className="h-6 w-6 text-gray-800" />
-              </button>
-              <button 
-                onClick={handleNextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-md transition-all"
-              >
-                <ChevronRight className="h-6 w-6 text-gray-800" />
-              </button>
-              
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                {property.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-all ${index === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-8 rounded-2xl shadow-sm">
-              <h2 className="text-2xl font-bold text-[#5d4a3a] mb-6 pb-2 border-b border-[#e8d5b5]">
-                Description
-              </h2>
-              <div className="prose text-gray-700 max-w-none">
-                <p className="mb-4">{property.description}</p>
-                
-                {property.extendedDescription && (
-                  <>
-                    <p className="mb-4">{property.extendedDescription}</p>
-                    <ul className="list-disc pl-5 mb-4">
-                      {property.neighborhood === "Almadies" && (
-                        <>
-                          <li>Emplacement exclusif dans la zone résidentielle la plus prisée de Dakar</li>
-                          <li>À 5 minutes des plages de Ngor et des restaurants de bord de mer</li>
-                          <li>Proximité des écoles internationales (ISD, EAB)</li>
-                        </>
-                      )}
-                      {property.neighborhood === "Plateau" && (
-                        <>
-                          <li>Cœur du quartier des affaires, à proximité des ministères et banques</li>
-                          <li>Accès facile aux transports en commun et aux axes principaux</li>
-                          <li>Commerces et restaurants haut de gamme à pied</li>
-                        </>
-                      )}
-                    </ul>
-                  </>
-                )}
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#5d4a3a]">{property.type} entier · {property.neighborhood}</h2>
+                  <p className="text-[#7a6652]">{property.guests} {property.guests > 1 ? 'voyageurs' : 'voyageur'} · {property.bedrooms} {property.bedrooms > 1 ? 'chambres' : 'chambre'} · {property.bathrooms} {property.bathrooms > 1 ? 'salles de bain' : 'salle de bain'}</p>
+                </div>
+                <div className="flex items-center">
+                  <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                  <span className="ml-1 text-[#5d4a3a]">{property.rating}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-b border-[#e0d6cc] py-6 my-6">
+                <div className="flex items-center space-x-8">
+                  <div className="flex items-center">
+                    <Ruler className="h-5 w-5 text-[#8d7364] mr-2" />
+                    <span className="text-[#5d4a3a]">{property.surface} m²</span>
+                  </div>
+                  <div className="flex items-center">
+                    <BedDouble className="h-5 w-5 text-[#8d7364] mr-2" />
+                    <span className="text-[#5d4a3a]">{property.bedrooms} {property.bedrooms > 1 ? 'lits' : 'lit'}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Bath className="h-5 w-5 text-[#8d7364] mr-2" />
+                    <span className="text-[#5d4a3a]">{property.bathrooms} {property.bathrooms > 1 ? 'salles de bain' : 'salle de bain'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-[#5d4a3a] mb-4">Description</h3>
+                <p className="text-[#5d4a3a] whitespace-pre-line">{property.description}</p>
+              </div>
+
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-[#5d4a3a] mb-4">Équipements</h3>
+                <AmenitiesList amenities={property.amenities} />
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl shadow-sm">
-              <h2 className="text-2xl font-bold text-[#5d4a3a] mb-6 pb-2 border-b border-[#e8d5b5]">
-                Caractéristiques
-              </h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#5d4a3a] mb-4">Intérieur</h3>
-                  <ul className="space-y-3">
-                    {property.features.slice(0, Math.ceil(property.features.length / 2)).map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="w-2 h-2 rounded-full bg-[#8d7364] mt-2 mr-2"></span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold text-[#5d4a3a] mb-4">Extérieur & Services</h3>
-                  <ul className="space-y-3">
-                    {property.features.slice(Math.ceil(property.features.length / 2)).map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="w-2 h-2 rounded-full bg-[#8d7364] mt-2 mr-2"></span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
+            {/* Host Profile */}
+            <HostProfile host={property.host} />
           </div>
 
-          <div className="space-y-8 lg:min-h-screen">
-            <div className="bg-white p-8 rounded-2xl shadow-sm  top-8">
-              <h2 className="text-2xl font-bold text-[#5d4a3a] mb-6 pb-2 border-b border-[#e8d5b5]">
-                Détails du bien
-              </h2>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between py-3 border-b border-[#e8d5b5]">
-                  <span className="text-gray-600">Type</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.type}</span>
-                </div>
-                
-                <div className="flex justify-between py-3 border-b border-[#e8d5b5]">
-                  <span className="text-gray-600">Surface</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.surface} m²</span>
-                </div>
-                
-                <div className="flex justify-between py-3 border-b border-[#e8d5b5]">
-                  <span className="text-gray-600">Chambres</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.bedrooms}</span>
-                </div>
-                
-                <div className="flex justify-between py-3 border-b border-[#e8d5b5]">
-                  <span className="text-gray-600">Salles de bain</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.bathrooms}</span>
-                </div>
-                
-                <div className="flex justify-between py-3 border-b border-[#e8d5b5]">
-                  <span className="text-gray-600">Année</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.year}</span>
-                </div>
-                
-                <div className="flex justify-between py-3">
-                  <span className="text-gray-600">Quartier</span>
-                  <span className="font-medium text-[#5d4a3a]">{property.neighborhood}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-2xl shadow-sm">
-              <h2 className="text-2xl font-bold text-[#5d4a3a] mb-6 pb-2 border-b border-[#e8d5b5]">
-                Contacter l'agent
-              </h2>
-              
-              <div className="flex items-center gap-4 p-4 bg-[#f9f5f0] rounded-lg mb-6">
-                <div className="w-12 h-12 rounded-full bg-[#8d7364] flex items-center justify-center text-white">
-                  <User className="h-6 w-6" />
-                </div>
+          {/* Booking Sidebar */}
+          <div className="sticky top-4 h-fit">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-[#e0d6cc]">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className="font-medium text-[#5d4a3a]">{property.agent.name}</h4>
-                  <p className="text-sm text-[#7a6652]">Agent immobilier ({property.agent.yearsOfExperience} ans d'expérience)</p>
+                  <p className="text-2xl font-bold text-[#8d7364]">{formatPrice(property.pricePerNight)}</p>
+                  <p className="text-[#7a6652]">par nuit</p>
+                </div>
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                  <span className="ml-1 text-[#5d4a3a]">{property.rating}</span>
                 </div>
               </div>
-              
-              <div className="space-y-4">
-                <button 
-                  onClick={() => setShowContactForm(!showContactForm)}
-                  className="w-full bg-[#8d7364] hover:bg-[#6b594e] text-white py-3 rounded-lg font-medium transition-colors"
-                >
-                  {showContactForm ? 'Masquer le formulaire' : 'Envoyer un message'}
-                </button>
-                
-                {showContactForm && (
-                  <form className="space-y-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Votre nom"
-                        className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg focus:ring-2 focus:ring-[#8d7364] focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="email"
-                        placeholder="Votre email"
-                        className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg focus:ring-2 focus:ring-[#8d7364] focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <textarea
-                        placeholder="Votre message"
-                        rows={4}
-                        className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg focus:ring-2 focus:ring-[#8d7364] focus:border-transparent"
-                        defaultValue={`Je suis intéressé(e) par la propriété "${property.title}"`}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="w-full bg-[#5d4a3a] hover:bg-[#4a3a2e] text-white py-3 rounded-lg font-medium transition-colors"
-                    >
-                      Envoyer
-                    </button>
-                  </form>
-                )}
-                
-                <div className="flex gap-2">
-                  <a 
-                    href={`tel:${property.agent.phone}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white border border-[#e0d6cc] text-[#5d4a3a] py-3 rounded-lg font-medium hover:bg-[#f5efe6] transition-colors"
+
+              <div className="border border-[#e0d6cc] rounded-lg mb-4">
+                <div className="grid grid-cols-2 border-b border-[#e0d6cc]">
+                  <div className="p-3 border-r border-[#e0d6cc]">
+                    <label className="block text-xs font-medium text-[#5d4a3a] mb-1">ARRIVÉE</label>
+                    <input
+                      type="date"
+                      className="w-full outline-none text-sm"
+                      value={selectedDates.start}
+                      onChange={(e) => setSelectedDates({...selectedDates, start: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div className="p-3">
+                    <label className="block text-xs font-medium text-[#5d4a3a] mb-1">DÉPART</label>
+                    <input
+                      type="date"
+                      className="w-full outline-none text-sm"
+                      value={selectedDates.end}
+                      onChange={(e) => setSelectedDates({...selectedDates, end: e.target.value})}
+                      min={selectedDates.start || new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+                <div className="p-3">
+                  <label className="block text-xs font-medium text-[#5d4a3a] mb-1">VOYAGEURS</label>
+                  <select
+                    className="w-full outline-none text-sm"
+                    value={guests}
+                    onChange={(e) => setGuests(parseInt(e.target.value))}
                   >
-                    <Phone className="h-5 w-5" />
-                    Appeler
-                  </a>
-                  <a 
-                    href={`mailto:${property.agent.email}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white border border-[#e0d6cc] text-[#5d4a3a] py-3 rounded-lg font-medium hover:bg-[#f5efe6] transition-colors"
-                  >
-                    <Mail className="h-5 w-5" />
-                    Email
-                  </a>
+                    {[...Array(property.maxGuests)].map((_, i) => (
+                      <option key={i+1} value={i+1}>{i+1} {i+1 > 1 ? 'personnes' : 'personne'}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              {selectedDates.start && selectedDates.end && (
+                <div className="mb-4">
+                  <div className="flex justify-between py-2">
+                    <span className="text-[#5d4a3a]">
+                      {formatPrice(property.pricePerNight)} × {Math.ceil((new Date(selectedDates.end) - new Date(selectedDates.start)) / (1000 * 60 * 60 * 24))} nuits
+                    </span>
+                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal())}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-t border-[#e0d6cc] font-bold">
+                    <span className="text-[#5d4a3a]">Total</span>
+                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal())}</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleReservation}
+                className="w-full bg-[#8d7364] text-white py-3 rounded-lg hover:bg-[#6b594e] transition-colors"
+                disabled={!selectedDates.start || !selectedDates.end}
+              >
+                {property.instantBooking ? 'Réserver' : 'Vérifier la disponibilité'}
+              </button>
+
+              {property.instantBooking && (
+                <p className="text-center text-sm text-[#7a6652] mt-2">
+                  Vous ne serez pas débité tout de suite
+                </p>
+              )}
             </div>
           </div>
         </div>

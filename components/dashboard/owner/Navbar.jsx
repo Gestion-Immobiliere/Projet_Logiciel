@@ -38,10 +38,6 @@ export default function Navbar({ user }) {
             <FiBell className="text-gray-600" />
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
-          
-          <button className="p-2 rounded-full hover:bg-gray-100">
-            <FiHelpCircle className="text-gray-600" />
-          </button>
 
           <div className="relative" ref={dropdownRef}>
             <button
@@ -67,12 +63,8 @@ export default function Navbar({ user }) {
                       <p className="text-xs text-gray-500">{user?.email || 'proprietaire@example.com'}</p>
                     </div>
                     
-                    <Link href="/profile" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
+                    <Link href="/dashboard/owner/profile" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
                       <FiUser className="mr-2" /> Profil
-                    </Link>
-                    
-                    <Link href="/settings" className="flex items-center px-4 py-2 text-sm hover:bg-gray-50">
-                      <FiSettings className="mr-2" /> Paramètres
                     </Link>
                     
                     <button

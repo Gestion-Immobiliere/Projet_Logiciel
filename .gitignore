@@ -12,6 +12,11 @@
 /.env.local
 # testing
 /coverage
+/components/BookingWidget.jsx
+/components/DateSelector.jsx
+/components/DateSelector.css
+/app/reservations
+/app/arborescence.txt
 
 # next.js
 /.next/

@@ -1,156 +1,109 @@
 'use client';
-import PropertyCard from '../../components/PropertyCard';
-import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath } from 'lucide-react';
-import { useState } from 'react';
+import PropertyCard from '@/components/PropertyCard';
+import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const neighborhoods = [
-  { name: "Almadies", emoji: "🏝️" },
-  { name: "Plateau", emoji: "🏙️" },
-  { name: "Mermoz", emoji: "🌳" },
-  { name: "Fann", emoji: "🏛️" },
-  { name: "Ouakam", emoji: "🌊" },
-  { name: "Ngor", emoji: "🏖️" },
-  { name: "Yoff", emoji: "🐟" },
-  { name: "Sicap", emoji: "🏘️" }
-];
-
-const properties = [
-  {
-    id: 1,
-    title: "Villa Prestige aux Almadies",
-    price: 45000000,
-    type: "Villa",
-    location: "Almadies, Dakar",
-    bedrooms: 5,
-    bathrooms: 4,
-    surface: 450,
-    image: "/villa-almadies.jpg",
-    premium: true,
-    rating: 4.8,
-    features: ["Piscine", "Jardin", "Garage", "Climatisation"],
-    neighborhood: "Almadies"
-  },
-  {
-    id: 2,
-    title: "Appartement standing au Plateau",
-    price: 25000000,
-    type: "Appartement",
-    location: "Plateau, Dakar",
-    bedrooms: 3,
-    bathrooms: 2,
-    surface: 180,
-    image: "/appartement-plateau.jpg",
-    premium: false,
-    rating: 4.5,
-    features: ["Ascenseur", "Parking sécurisé", "Vue mer"],
-    neighborhood: "Plateau"
-  },
-  {
-    id: 3,
-    title: "Résidence sécurisée à Mermoz",
-    price: 18000000,
-    type: "Appartement",
-    location: "Mermoz, Dakar",
-    bedrooms: 4,
-    bathrooms: 3,
-    surface: 220,
-    image: "/residence-mermoz.jpg",
-    premium: true,
-    rating: 4.7,
-    features: ["24/7 Sécurité", "Salle de sport", "Piscine commune"],
-    neighborhood: "Mermoz"
-  },
-  {
-    id: 4,
-    title: "Maison traditionnelle à Ouakam",
-    price: 35000000,
-    type: "Maison",
-    location: "Ouakam, Dakar",
-    bedrooms: 6,
-    bathrooms: 4,
-    surface: 500,
-    image: "/maison-ouakam.jpg",
-    premium: true,
-    rating: 4.9,
-    features: ["Terrasse panoramique", "Jardin arboré", "Cuisine moderne"],
-    neighborhood: "Ouakam"
-  },
-  {
-    id: 5,
-    title: "Studio moderne à Fann",
-    price: 9000000,
-    type: "Studio",
-    location: "Fann, Dakar",
-    bedrooms: 1,
-    bathrooms: 1,
-    surface: 65,
-    image: "/studio-fann.jpg",
-    premium: false,
-    rating: 4.2,
-    features: ["Meublé", "Proche UCAD", "Balcon"],
-    neighborhood: "Fann"
-  },
-  {
-    id: 6,
-    title: "Duplex de luxe à Ngor",
-    price: 38000000,
-    type: "Appartement",
-    location: "Ngor, Dakar",
-    bedrooms: 4,
-    bathrooms: 3,
-    surface: 280,
-    image: "/duplex-ngor.jpg",
-    premium: true,
-    rating: 4.8,
-    features: ["Vue directe sur mer", "Plage privée", "Domotique"],
-    neighborhood: "Ngor"
-  }
-];
+import { useSearchParams } from 'next/navigation';
 
 export default function PropertiesPage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [filters, setFilters] = useState({
-    type: '',
-    minPrice: '',
-    maxPrice: '',
-    bedrooms: '',
-    neighborhood: ''
+    type: searchParams.get('type') || '',
+    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
+    bedrooms: searchParams.get('bedrooms') || '',
+    neighborhood: searchParams.get('neighborhood') || '',
+    availability: searchParams.get('availability') || ''
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); 
-
-  const filteredProperties = properties.filter(property => {
-    return (
-      (property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       property.location.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (!filters.type || property.type === filters.type) &&
-      (!filters.minPrice || property.price >= filters.minPrice) &&
-      (!filters.maxPrice || property.price <= filters.maxPrice) &&
-      (!filters.bedrooms || property.bedrooms >= filters.bedrooms) &&
-      (!filters.neighborhood || property.neighborhood === filters.neighborhood)
-    );
+  const [viewMode, setViewMode] = useState('grid');
+  const [loading, setLoading] = useState(true);
+  const [properties, setProperties] = useState([]);
+  const [dateRange, setDateRange] = useState({
+    startDate: searchParams.get('startDate') || null,
+    endDate: searchParams.get('endDate') || null
   });
 
-  const formatPrice = (price) => {
-    if (typeof window !== 'undefined') {
-      return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
-    }
-    return `${price} FCFA`; 
+  // Fetch properties from API
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const query = new URLSearchParams({
+          q: searchTerm,
+          ...filters,
+          startDate: dateRange.startDate || '',
+          endDate: dateRange.endDate || ''
+        }).toString();
+        
+        const response = await fetch(`/api/properties?${query}`);
+        const data = await response.json();
+        setProperties(data);
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, [searchTerm, filters, dateRange]);
+
+  const handleDateChange = (dates) => {
+    const [start, end] = dates;
+    setDateRange({ startDate: start, endDate: end });
   };
+
+  const clearFilters = () => {
+    setFilters({
+      type: '',
+      minPrice: '',
+      maxPrice: '',
+      bedrooms: '',
+      neighborhood: '',
+      availability: ''
+    });
+    setDateRange({ startDate: null, endDate: null });
+    setSearchTerm('');
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
+  };
+
+  const neighborhoods = [
+    { name: "Almadies", emoji: "🏝️" },
+    { name: "Plateau", emoji: "🏙️" },
+    { name: "Mermoz", emoji: "🌳" },
+    { name: "Fann", emoji: "🏛️" },
+    { name: "Ouakam", emoji: "🌊" },
+    { name: "Ngor", emoji: "🏖️" },
+    { name: "Yoff", emoji: "🐟" },
+    { name: "Sicap", emoji: "🏘️" }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8d7364]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f9f5f0]">
+      {/* Hero Section */}
       <div className="relative bg-[#8d7364] text-white py-20">
         <div className="absolute inset-0 bg-[url('/dakar-pattern.png')] opacity-10"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Trouvez Votre Propriété Idéale à Dakar</h1>
           <p className="text-xl text-[#e8d5b5] max-w-2xl mx-auto">
-            Explorez notre sélection exclusive de biens immobiliers dans les meilleurs quartiers de Dakar
+            Réservez des logements uniques pour votre prochain séjour
           </p>
         </div>
       </div>
 
+      {/* Search and Filters */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -178,6 +131,29 @@ export default function PropertiesPage() {
 
           {showFilters && (
             <div className="bg-[#f5efe6] p-6 rounded-lg grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Dates</label>
+                <div className="flex items-center border border-[#e0d6cc] rounded-lg p-2 bg-white">
+                  <Calendar className="h-5 w-5 text-[#8d7364] mr-2" />
+                  <input
+                    type="date"
+                    placeholder="Arrivée"
+                    className="flex-1 outline-none text-sm"
+                    value={dateRange.startDate || ''}
+                    onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
+                  />
+                  <span className="mx-2">-</span>
+                  <input
+                    type="date"
+                    placeholder="Départ"
+                    className="flex-1 outline-none text-sm"
+                    value={dateRange.endDate || ''}
+                    onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})}
+                    min={dateRange.startDate}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Type de bien</label>
                 <select
@@ -210,22 +186,11 @@ export default function PropertiesPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Prix min (FCFA)</label>
-                <input
-                  type="number"
-                  className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
-                  placeholder="Minimum"
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters({...filters, minPrice: parseInt(e.target.value) || ''})}
-                />
-              </div>
-              
-              <div>
                 <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Chambres min</label>
                 <select
                   className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
                   value={filters.bedrooms}
-                  onChange={(e) => setFilters({...filters, bedrooms: parseInt(e.target.value) || ''})}
+                  onChange={(e) => setFilters({...filters, bedrooms: e.target.value})}
                 >
                   <option value="">Toutes</option>
                   <option value="1">1+</option>
@@ -235,19 +200,37 @@ export default function PropertiesPage() {
                   <option value="5">5+</option>
                 </select>
               </div>
+
+              <div className="md:col-span-4 flex justify-between">
+                <button
+                  onClick={clearFilters}
+                  className="text-[#8d7364] hover:underline"
+                >
+                  Réinitialiser tous les filtres
+                </button>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="bg-[#8d7364] text-white px-4 py-2 rounded-lg"
+                >
+                  Appliquer les filtres
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Properties Listing */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="mb-4 md:mb-0">
             <h2 className="text-2xl font-bold text-[#5d4a3a]">
-              {filteredProperties.length} {filteredProperties.length > 1 ? 'propriétés trouvées' : 'propriété trouvée'}
+              {properties.length} {properties.length > 1 ? 'propriétés disponibles' : 'propriété disponible'}
             </h2>
             <p className="text-[#7a6652]">
-              {searchTerm ? `Résultats pour "${searchTerm}"` : 'Nos dernières offres'}
+              {dateRange.startDate && dateRange.endDate ? 
+                `Du ${new Date(dateRange.startDate).toLocaleDateString()} au ${new Date(dateRange.endDate).toLocaleDateString()}` : 
+                'Dates flexibles disponibles'}
             </p>
           </div>
           
@@ -267,34 +250,31 @@ export default function PropertiesPage() {
               </button>
             </div>
             
-            <select className="border border-[#e0d6cc] rounded-lg px-4 py-2 bg-white text-[#5d4a3a] focus:ring-2 focus:ring-[#8d7364]">
-              <option>Trier par : Pertinence</option>
-              <option>Prix croissant</option>
-              <option>Prix décroissant</option>
-              <option>Surface</option>
+            <select 
+              className="border border-[#e0d6cc] rounded-lg px-4 py-2 bg-white text-[#5d4a3a] focus:ring-2 focus:ring-[#8d7364]"
+              onChange={(e) => {
+                // Implement sorting logic
+              }}
+            >
+              <option value="relevance">Trier par : Pertinence</option>
+              <option value="price_asc">Prix croissant</option>
+              <option value="price_desc">Prix décroissant</option>
+              <option value="rating">Meilleures notes</option>
             </select>
           </div>
         </div>
 
-        {filteredProperties.length === 0 ? (
+        {properties.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-sm">
             <div className="mx-auto w-24 h-24 bg-[#f5efe6] rounded-full flex items-center justify-center mb-4">
               <MapPin className="h-12 w-12 text-[#8d7364]" />
             </div>
             <h3 className="text-xl font-medium text-[#5d4a3a] mb-2">Aucun résultat trouvé</h3>
             <p className="text-[#7a6652] max-w-md mx-auto">
-              Essayez d'ajuster vos critères de recherche ou <button 
+              Essayez d'ajuster vos critères de recherche ou{' '}
+              <button 
                 className="text-[#8d7364] hover:underline"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilters({
-                    type: '',
-                    minPrice: '',
-                    maxPrice: '',
-                    bedrooms: '',
-                    neighborhood: ''
-                  });
-                }}
+                onClick={clearFilters}
               >
                 réinitialiser les filtres
               </button>
@@ -302,22 +282,23 @@ export default function PropertiesPage() {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProperties.map((property) => (
+            {properties.map((property) => (
               <PropertyCard 
                 key={property.id} 
                 property={property} 
                 formatPrice={formatPrice}
+                dateRange={dateRange}
               />
             ))}
           </div>
         ) : (
           <div className="space-y-6">
-            {filteredProperties.map((property) => (
+            {properties.map((property) => (
               <div key={property.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-1/3 h-64 relative">
                     <img 
-                      src={property.image} 
+                      src={property.images[0]} 
                       alt={property.title}
                       className="w-full h-full object-cover"
                     />
@@ -337,7 +318,8 @@ export default function PropertiesPage() {
                         </p>
                       </div>
                       <div className="text-2xl font-bold text-[#8d7364]">
-                        {formatPrice(property.price)}
+                        {formatPrice(property.pricePerNight)}
+                        <span className="text-sm font-normal text-gray-500"> / nuit</span>
                       </div>
                     </div>
                     
@@ -370,23 +352,12 @@ export default function PropertiesPage() {
                       </div>
                     </div>
                     
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {property.features.map((feature, index) => (
-                        <span 
-                          key={index} 
-                          className="bg-[#f5efe6] text-[#8d7364] px-3 py-1 rounded-full text-sm"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                    
                     <div className="mt-6">
                       <Link 
-                        href={`/properties/${property.id}`}
+                        href={`/properties/${property.id}${dateRange.startDate ? `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}` : ''}`}
                         className="inline-block bg-[#8d7364] text-white px-6 py-2 rounded-lg hover:bg-[#6b594e] transition-colors"
                       >
-                        Voir les détails
+                        {property.instantBooking ? 'Réserver maintenant' : 'Voir les disponibilités'}
                       </Link>
                     </div>
                   </div>
@@ -396,19 +367,20 @@ export default function PropertiesPage() {
           </div>
         )}
 
+        {/* Neighborhood Guide */}
         <div className="mt-16 bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-8">
             <h3 className="text-2xl font-bold text-[#5d4a3a] mb-6">Guide des Quartiers de Dakar</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {neighborhoods.map((area) => (
-                <div 
+                <button
                   key={area.name} 
-                  className="border border-[#e0d6cc] rounded-lg p-4 hover:bg-[#f5efe6] transition-colors cursor-pointer"
+                  className="border border-[#e0d6cc] rounded-lg p-4 hover:bg-[#f5efe6] transition-colors text-left"
                   onClick={() => setFilters({...filters, neighborhood: area.name})}
                 >
                   <div className="text-2xl mb-2">{area.emoji}</div>
                   <h4 className="font-medium text-[#5d4a3a]">{area.name}</h4>
-                </div>
+                </button>
               ))}
             </div>
           </div>
