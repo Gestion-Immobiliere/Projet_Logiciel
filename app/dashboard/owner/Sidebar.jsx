@@ -1,20 +1,22 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  FiHome, 
-  FiUsers, 
+import {
+  FiHome,
+  FiUsers,
   FiPackage,
   FiDollarSign,
   FiFileText,
   FiMessageSquare,
-  FiSettings, 
+  FiSettings,
   FiChevronRight,
   FiLogOut,
   FiUser,
-  FiPlus
+  FiChevronDown
 } from 'react-icons/fi';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ownerLinks = [
   { href: '/dashboard/owner', icon: <FiHome size={18} />, label: 'Tableau de bord' },
@@ -29,10 +31,14 @@ export default function OwnerSidebar() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
+  const { user, logout } = useAuth(); // 🔑 récupération dynamique
 
   const toggleSubmenu = (menu) => {
     setActiveSubmenu(activeSubmenu === menu ? null : menu);
   };
+
+  const fullName = user ? `${user.nom} ${user.prenom}` : 'Chargement...';
+  const roleLabel = user?.role === 'agent' ? 'Propriétaire' : user?.role || '';
 
   return (
     <div className={`bg-white border-r h-full flex flex-col transition-all duration-300 ${expanded ? 'w-64' : 'w-20'}`}>
@@ -46,7 +52,7 @@ export default function OwnerSidebar() {
             <FiHome />
           </div>
         )}
-        <button 
+        <button
           onClick={() => setExpanded(!expanded)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
@@ -75,15 +81,13 @@ export default function OwnerSidebar() {
                     : 'hover:bg-gray-100 text-gray-700'
                 }`}
               >
-                <span className={`${expanded ? 'mr-3' : 'mx-auto'}`}>
-                  {link.icon}
-                </span>
+                <span className={`${expanded ? 'mr-3' : 'mx-auto'}`}>{link.icon}</span>
                 {expanded && (
                   <>
                     <span className="flex-1">{link.label}</span>
                     {link.submenu && (
-                      <FiChevronDown 
-                        className={`transition-transform ${showSubmenu ? 'rotate-180' : ''}`} 
+                      <FiChevronDown
+                        className={`transition-transform ${showSubmenu ? 'rotate-180' : ''}`}
                       />
                     )}
                   </>
@@ -110,8 +114,6 @@ export default function OwnerSidebar() {
             </div>
           );
         })}
-
-        {}
       </nav>
 
       <div className="border-t p-4">
@@ -122,18 +124,18 @@ export default function OwnerSidebar() {
                 <FiUser className="text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="font-medium">Jules SAGNA</p>
-                <p className="text-xs text-gray-500">Propriétaire</p>
+                <p className="font-medium">{fullName}</p>
+                <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
             </div>
 
             <div className="mt-2 space-y-1">
-              <a 
-                href="/logout" 
-                className="flex items-center p-2 rounded-lg text-red-600 hover:bg-red-50"
+              <button
+                onClick={logout}
+                className="flex items-center p-2 rounded-lg text-red-600 hover:bg-red-50 w-full"
               >
                 <FiLogOut className="mr-3" /> Déconnexion
-              </a>
+              </button>
             </div>
           </>
         ) : (
@@ -141,9 +143,12 @@ export default function OwnerSidebar() {
             <div className="bg-blue-100 p-2 rounded-full">
               <FiUser className="text-blue-600" />
             </div>
-            <a href="/logout" className="p-2 rounded-lg hover:bg-gray-100">
-              <FiLogOut className="text-red-600" />
-            </a>
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-gray-100 text-red-600"
+            >
+              <FiLogOut />
+            </button>
           </div>
         )}
       </div>

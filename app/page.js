@@ -1,64 +1,14 @@
+'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Home, Building, ShieldCheck, HeartHandshake, BarChart2, MapPin, Star, BedDouble, Bath, Ruler } from 'lucide-react';
+import { ArrowRight, Home, Building, ShieldCheck, HeartHandshake, MapPin, Star, BedDouble, Bath, Ruler } from 'lucide-react';
 import HeroBanner from '@/components/HeroBanner';
-import SearchBar from '@/components/SearchBar';
 import Image from 'next/image';
 
 export default function HomePage() {
-  const featuredProperties = [
-    {
-      id: 1,
-      title: "Villa Prestige aux Almadies",
-      price: 4500000,
-      type: "Villa",
-      location: "Almadies, Dakar",
-      bedrooms: 5,
-      bathrooms: 4,
-      surface: 320,
-      images: ["/Placeholder.jpg"],
-      premium: true,
-      rating: 4.8
-    },
-    {
-      id: 2,
-      title: "Appartement standing au Plateau",
-      price: 2500000,
-      type: "Appartement",
-      location: "Plateau, Dakar",
-      bedrooms: 3,
-      bathrooms: 2,
-      surface: 180,
-      images: ["/Placeholder2.jpg"],
-      premium: false,
-      rating: 4.5
-    },
-    {
-      id: 3,
-      title: "Studio moderne à Mermoz",
-      price: 1500000,
-      type: "Studio",
-      location: "Mermoz, Dakar",
-      bedrooms: 1,
-      bathrooms: 1,
-      surface: 60,
-      images: ["/placeholder3.jpg"],
-      premium: false,
-      rating: 4.2
-    },
-    {
-      id: 4,
-      title: "Maison familiale à Yoff",
-      price: 3500000,
-      type: "Maison",
-      location: "Yoff, Dakar",
-      bedrooms: 4,
-      bathrooms: 3,
-      surface: 250,
-      images: ["/placeholder4.jpg"],
-      premium: true,
-      rating: 4.7
-    },
-  ];
+  const [featuredProperties, setFeaturedProperties] = useState([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const stats = [
     { value: "500+", label: "Propriétés disponibles" },
@@ -90,6 +40,42 @@ export default function HomePage() {
     }
   ];
 
+  // Récupérer les biens dynamiquement
+  useEffect(() => {
+    const fetchFeaturedProperties = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch('http://localhost:4000/api/biens/filtre?limit=8');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la récupération des biens');
+        }
+        const { data } = await response.json();
+        // Mapper les données du backend au format attendu par PropertyCard
+        const mappedProperties = data.map(bien => ({
+          id: bien._id,
+          title: bien.titre,
+          price: bien.prix,
+          type: bien.type?.nom || 'Inconnu',
+          location: bien.localisation?.ville || 'Inconnu',
+          bedrooms: bien.nombreChambres,
+          bathrooms: bien.nombreSallesBain,
+          surface: bien.surface,
+          images: bien.images || ['/placeholder.jpg'],
+          premium: false, // À ajuster si vous ajoutez un champ premium au modèle Bien
+          rating: 4.5 // Valeur fictive (ajouter un champ au modèle Bien si nécessaire)
+        }));
+        setFeaturedProperties(mappedProperties);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeaturedProperties();
+  }, []);
+
   return (
     <main className="overflow-hidden">
       <HeroBanner
@@ -97,10 +83,6 @@ export default function HomePage() {
         subtitle="Découvrez des propriétés d'exception adaptées à vos besoins"
         ctaText="Explorer nos biens"
       />
-
-      {/* <div className="relative z-10 -mt-12 container mx-auto px-4">
-        <SearchBar filters={['location', 'type', 'price', 'bedrooms']} />
-      </div> */}
 
       <section className="py-16 bg-gradient-to-r from-[#f5efe6] to-[#e8d5b5]">
         <div className="container mx-auto px-4">
@@ -125,11 +107,23 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-center">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center text-gray-600">Chargement des propriétés...</div>
+          ) : featuredProperties.length === 0 ? (
+            <div className="text-center text-gray-600">Aucune propriété disponible pour le moment.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {featuredProperties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Link href="/properties" className="inline-flex items-center px-8 py-3 bg-primary-600 text-[#8d7364] rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl">
@@ -191,7 +185,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-700 ">
+      <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-700">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-6">Prêt à trouver votre propriété idéale ?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
@@ -201,7 +195,7 @@ export default function HomePage() {
             <Link href="/contact" className="px-8 py-3 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
               Nous contacter
             </Link>
-            <Link href="/properties" className="px-8 py-3 border-2 border-white  rounded-lg font-medium hover:bg-white/10 transition-colors">
+            <Link href="/properties" className="px-8 py-3 border-2 border-white rounded-lg font-medium hover:bg-white/10 transition-colors">
               Voir nos biens
             </Link>
           </div>

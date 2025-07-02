@@ -1,26 +1,48 @@
 'use client';
 import { FiUser, FiMail, FiPhone, FiHome, FiCalendar, FiEdit, FiSave, FiX, FiCamera } from 'react-icons/fi';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export default function OwnerProfile() {
-  const [editMode, setEditMode] = useState(false);
-  const [ownerData, setOwnerData] = useState({
-    name: "Moussa Diallo",
-    email: "m.diallo@immo.sn",
-    phone: "+221 77 654 32 10",
-    propertiesCount: "5",
-    memberSince: "Janvier 2021",
-    lastPayment: "05/11/2023",
-    profileImage: "https://via.placeholder.com/150"
-  });
-  
-  const [formData, setFormData] = useState({...ownerData});
-  const [tempImage, setTempImage] = useState(null);
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
+
+  const [editMode, setEditMode] = useState(false);
+  const [ownerData, setOwnerData] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [tempImage, setTempImage] = useState(null);
+
+  // Charger les infos depuis le backend
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:4000/api/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Erreur lors de la récupération du profil");
+
+        setOwnerData(data);
+        setFormData({
+          email: data.email || '',
+          telephone: data.telephone || '',
+        });
+      } catch (err) {
+        toast.error("Impossible de charger le profil");
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({...formData, [name]: value});
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
@@ -34,26 +56,43 @@ export default function OwnerProfile() {
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
-  };
+  const triggerFileInput = () => fileInputRef.current?.click();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedData = {
-      ...formData,
-      profileImage: tempImage || ownerData.profileImage
-    };
-    setOwnerData(updatedData);
-    setTempImage(null);
-    setEditMode(false);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:4000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Échec de la mise à jour");
+
+      toast.success("Profil mis à jour ✅");
+      setOwnerData((prev) => ({ ...prev, ...formData }));
+      setEditMode(false);
+    } catch (err) {
+      toast.error(err.message || "Erreur serveur");
+    }
   };
 
   const handleCancel = () => {
-    setFormData(ownerData);
+    setFormData({
+      email: ownerData?.email || '',
+      telephone: ownerData?.telephone || '',
+    });
     setTempImage(null);
     setEditMode(false);
   };
+
+  if (!ownerData) return <p className="p-6 text-gray-600">Chargement du profil...</p>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -90,7 +129,7 @@ export default function OwnerProfile() {
             <div className="flex flex-col items-center">
               <div className="relative mb-3">
                 <img 
-                  src={tempImage || ownerData.profileImage} 
+                  src={tempImage || "/avatar-owner.png"} 
                   alt="Profil" 
                   className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"
                 />
@@ -112,8 +151,8 @@ export default function OwnerProfile() {
                   </>
                 )}
               </div>
-              <h2 className="text-lg font-semibold">{ownerData.name}</h2>
-              <p className="text-sm text-gray-500">Propriétaire</p>
+              <h2 className="text-lg font-semibold">{ownerData.nom} {ownerData.prenom}</h2>
+              <p className="text-sm text-gray-500">Propriétaire depuis {new Date(ownerData.createdAt).toLocaleDateString('fr-FR')}</p>
             </div>
 
             <div className="flex-1">
@@ -130,21 +169,14 @@ export default function OwnerProfile() {
                     <FiPhone className="text-gray-500 mt-1 mr-3" />
                     <div>
                       <p className="text-sm text-gray-500">Téléphone</p>
-                      <p className="font-medium">{ownerData.phone}</p>
+                      <p className="font-medium">{ownerData.telephone}</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <FiHome className="text-gray-500 mt-1 mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Biens immobiliers</p>
-                      <p className="font-medium">{ownerData.propertiesCount} propriétés</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FiCalendar className="text-gray-500 mt-1 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Membre depuis</p>
-                      <p className="font-medium">{ownerData.memberSince}</p>
+                      <p className="text-sm text-gray-500">Nombre de biens</p>
+                      <p className="font-medium">—</p>
                     </div>
                   </div>
                 </div>
@@ -169,34 +201,10 @@ export default function OwnerProfile() {
                       <label className="block text-sm text-gray-500 mb-1">Téléphone</label>
                       <input
                         type="tel"
-                        name="phone"
-                        value={formData.phone}
+                        name="telephone"
+                        value={formData.telephone}
                         onChange={handleChange}
                         className="w-full p-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FiHome className="text-gray-500 mt-3 mr-3" />
-                    <div className="flex-1">
-                      <label className="block text-sm text-gray-500 mb-1">Biens immobiliers</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={formData.propertiesCount}
-                        className="w-full p-2 bg-gray-100 rounded-md cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FiCalendar className="text-gray-500 mt-3 mr-3" />
-                    <div className="flex-1">
-                      <label className="block text-sm text-gray-500 mb-1">Membre depuis</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={formData.memberSince}
-                        className="w-full p-2 bg-gray-100 rounded-md cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -206,15 +214,15 @@ export default function OwnerProfile() {
           </div>
 
           <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Informations financières</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Finances</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-800">Dernier paiement reçu</p>
-                <p className="font-bold text-blue-900">{ownerData.lastPayment}</p>
+                <p className="text-sm text-blue-800">Dernier paiement</p>
+                <p className="font-bold text-blue-900">—</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm text-green-800">Solde actuel</p>
-                <p className="font-bold text-green-900">1 250 000 FCFA</p>
+                <p className="font-bold text-green-900">—</p>
               </div>
             </div>
           </div>
