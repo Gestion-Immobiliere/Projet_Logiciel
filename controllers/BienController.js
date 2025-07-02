@@ -3,6 +3,7 @@ import cloudinary from "cloudinary"
 import fs from "fs"
 import User from "../models/User.js"
 import stripe from "../config/stripe.js"
+import mongoose from "mongoose"
 
 export const createBien = async (req, res) => {
   console.log("REQ FILES:", req.files)
@@ -194,16 +195,93 @@ export const updateBien = async (req, res) => {
   }
 
   // 🔹 Remplacer contrat si envoyé
-if (req.files?.contrat) {
-  const pdfFile = req.files.contrat[0]
-  const result = await cloudinary.v2.uploader.upload(pdfFile.path, {
-    resource_type: "raw"
-  })
-  bien.contrat = result.secure_url
-  fs.unlinkSync(pdfFile.path)
-}
+  if (req.files?.contrat) {
+    const pdfFile = req.files.contrat[0]
+    const result = await cloudinary.v2.uploader.upload(pdfFile.path, {
+      resource_type: "raw"
+    })
+    bien.contrat = result.secure_url
+    fs.unlinkSync(pdfFile.path)
+  }
 
 }
 
 
 
+export const book = async (req, res) => {
+  const { bien, client, datePaiement, montant, dureeValidite } = req.body;
+
+  // Vérifie les champs obligatoires
+  if (!bien || !client || !datePaiement || !montant || !dureeValidite) {
+    return res.status(400).json({
+      status: 'error',
+      description: "Informations de réservation incomplètes"
+    });
+  }
+
+  try {
+    // Récupère le bien depuis la base de données
+    const bienData = await Bien.findById(bien);
+    if (!bienData) {
+      return res.status(404).json({ status: 'error', description: "Bien non trouvé" });
+    }
+
+    if (bienData.statut !== "disponible") {
+      return res.status(400).json({
+        status: 'error',
+        description: 'Bien déjà réservé ou vendu'
+      });
+    }
+
+    // Crée une nouvelle réservation
+    const reservation = new Reservation({
+      bien,
+      client,
+      datePaiement,
+      montant,
+      dureeValidite,
+      status: 'en attente'
+    });
+
+    await reservation.save();
+
+    // Crée une session de paiement Stripe
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: bienData.titre,
+              description: bienData.description,
+            },
+            unit_amount: Math.round(montant * 100), // en centimes
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/success?reservationId=${reservation._id}`,
+      cancel_url: `${process.env.FRONTEND_URL}/cancel?reservationId=${reservation._id}`,
+      metadata: {
+        reservationId: reservation._id.toString(),
+        bienId: bienData._id.toString(),
+        clientId: client,
+      },
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Réservation créée, redirection vers Stripe...',
+      url: session.url
+    });
+
+  } catch (error) {
+    console.error("Erreur lors de la réservation :", error);
+    return res.status(500).json({
+      status: 'error',
+      description: 'Erreur serveur lors de la réservation'
+    });
+  }
+}
