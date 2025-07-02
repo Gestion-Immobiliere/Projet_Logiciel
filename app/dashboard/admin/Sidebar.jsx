@@ -1,18 +1,19 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  FiHome, 
-  FiUsers, 
-  FiPackage, 
-  FiBarChart2, 
-  FiSettings, 
+import {
+  FiHome,
+  FiUsers,
+  FiPackage,
+  FiBarChart2,
+  FiSettings,
   FiChevronRight,
   FiLogOut,
-  FiUser,
-  FiHelpCircle
+  FiUser
 } from 'react-icons/fi';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext'; // 🔁 Import context
 
 const adminLinks = [
   { href: '/dashboard/admin', icon: <FiHome size={18} />, label: 'Dashboard' },
@@ -25,11 +26,10 @@ const adminLinks = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
-  const [activeSubmenu, setActiveSubmenu] = useState(null);
+  const { user, logout } = useAuth(); // 🟢 Context
 
-  const toggleSubmenu = (menu) => {
-    setActiveSubmenu(activeSubmenu === menu ? null : menu);
-  };
+  const fullName = user ? `${user.nom} ${user.prenom}` : 'Chargement...';
+  const roleLabel = user?.role === 'admin' ? 'Administrateur' : user?.role;
 
   return (
     <div className={`bg-white border-r h-full flex flex-col transition-all duration-300 ${expanded ? 'w-64' : 'w-20'}`}>
@@ -43,7 +43,7 @@ export default function AdminSidebar() {
             <FiHome />
           </div>
         )}
-        <button 
+        <button
           onClick={() => setExpanded(!expanded)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
@@ -76,16 +76,18 @@ export default function AdminSidebar() {
                 <FiUser className="text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="font-medium">Abdoulaye DIAW</p>
-                <p className="text-xs text-gray-500">Administrateur</p>
+                <p className="font-medium">{fullName}</p>
+                <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
             </div>
 
             <div className="mt-2 space-y-1">
-
-              <a href="/" className="flex items-center p-2 rounded-lg text-red-600 hover:bg-red-50">
+              <button
+                onClick={logout}
+                className="flex items-center p-2 rounded-lg text-red-600 hover:bg-red-50 w-full"
+              >
                 <FiLogOut className="mr-3" /> Déconnexion
-              </a>
+              </button>
             </div>
           </>
         ) : (
@@ -93,9 +95,12 @@ export default function AdminSidebar() {
             <div className="bg-blue-100 p-2 rounded-full">
               <FiUser className="text-blue-600" />
             </div>
-            <a href="/" className="p-2 rounded-lg hover:bg-gray-100">
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-gray-100"
+            >
               <FiLogOut className="text-red-600" />
-            </a>
+            </button>
           </div>
         )}
       </div>

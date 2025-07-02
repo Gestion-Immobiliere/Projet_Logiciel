@@ -1,51 +1,53 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  FiHome, 
-  FiHeart, 
-  FiFileText, 
-  FiCreditCard, 
+import {
+  FiHome,
+  FiHeart,
+  FiFileText,
+  FiCreditCard,
   FiMessageSquare,
-  FiUser, 
-  FiLogOut, 
+  FiUser,
+  FiLogOut,
   FiChevronRight,
   FiSettings,
   FiBell,
   FiChevronDown
 } from 'react-icons/fi';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const tenantLinks = [
-  { 
-    href: '/dashboard/tenant', 
-    icon: <FiHome size={18} />, 
-    label: 'Tableau de bord' 
+  {
+    href: '/dashboard/tenant',
+    icon: <FiHome size={18} />,
+    label: 'Tableau de bord'
   },
   {
     href: '/dashboard/tenant/properties',
     icon: <FiHome size={18} />,
     label: 'Propriétés',
   },
-  { 
-    href: '/dashboard/tenant/favorites', 
-    icon: <FiHeart size={18} />, 
+  {
+    href: '/dashboard/tenant/favorites',
+    icon: <FiHeart size={18} />,
     label: 'Favoris',
   },
-  { 
-    href: '/dashboard/tenant/contracts', 
-    icon: <FiFileText size={18} />, 
+  {
+    href: '/dashboard/tenant/contracts',
+    icon: <FiFileText size={18} />,
     label: 'Contrats',
   },
-  { 
-    href: '/dashboard/tenant/payments', 
-    icon: <FiCreditCard size={18} />, 
-    label: 'Paiements' 
+  {
+    href: '/dashboard/tenant/payments',
+    icon: <FiCreditCard size={18} />,
+    label: 'Paiements'
   },
-  { 
-    href: '/dashboard/tenant/messages', 
-    icon: <FiMessageSquare size={18} />, 
-    label: 'Messagerie' 
+  {
+    href: '/dashboard/tenant/messages',
+    icon: <FiMessageSquare size={18} />,
+    label: 'Messagerie'
   }
 ];
 
@@ -53,10 +55,14 @@ export default function TenantSidebar() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
+  const { user, logout } = useAuth(); // 👈 récupération dynamique
 
   const toggleSubmenu = (menu) => {
     setActiveSubmenu(activeSubmenu === menu ? null : menu);
   };
+
+  const fullName = user ? `${user.nom} ${user.prenom}` : 'Chargement...';
+  const roleLabel = user?.role === 'client' ? 'Locataire' : user?.role || '';
 
   return (
     <div className={`bg-white border-r h-full flex flex-col transition-all duration-300 ${expanded ? 'w-64' : 'w-20'}`}>
@@ -70,7 +76,7 @@ export default function TenantSidebar() {
             <FiHome />
           </div>
         )}
-        <button 
+        <button
           onClick={() => setExpanded(!expanded)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
@@ -106,8 +112,8 @@ export default function TenantSidebar() {
                   <>
                     <span className="flex-1">{link.label}</span>
                     {link.submenu && (
-                      <FiChevronDown 
-                        className={`transition-transform ${showSubmenu ? 'rotate-180' : ''}`} 
+                      <FiChevronDown
+                        className={`transition-transform ${showSubmenu ? 'rotate-180' : ''}`}
                       />
                     )}
                   </>
@@ -149,8 +155,8 @@ export default function TenantSidebar() {
                 </span>
               </div>
               <div className="flex-1">
-                <p className="font-medium">Abdoulaye DIAW</p>
-                <p className="text-xs text-gray-500">Locataire</p>
+                <p className="font-medium">{fullName}</p>
+                <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
             </div>
 
@@ -168,12 +174,12 @@ export default function TenantSidebar() {
                 <FiBell />
                 <span className="absolute top-1.5 right-1.5 bg-blue-500 text-white text-[10px] rounded-full h-3 w-3 flex items-center justify-center"></span>
               </Link>
-              <a 
-                href="/logout" 
+              <button
+                onClick={logout}
                 className="flex-1 flex items-center justify-center p-2 rounded-lg text-red-600 hover:bg-red-50"
               >
                 <FiLogOut />
-              </a>
+              </button>
             </div>
           </>
         ) : (
@@ -191,12 +197,12 @@ export default function TenantSidebar() {
               <FiBell />
               <span className="absolute top-1 right-1 bg-blue-500 text-white text-[8px] rounded-full h-2 w-2 flex items-center justify-center"></span>
             </Link>
-            <a 
-              href="/logout" 
+            <button
+              onClick={logout}
               className="p-2 rounded-lg text-red-600 hover:bg-red-50"
             >
               <FiLogOut />
-            </a>
+            </button>
           </div>
         )}
       </div>

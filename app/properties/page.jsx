@@ -1,86 +1,106 @@
 'use client';
-import PropertyCard from '@/components/PropertyCard';
-import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath, Calendar } from 'lucide-react';
+import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 
 export default function PropertiesPage() {
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('titre') || '');
   const [filters, setFilters] = useState({
     type: searchParams.get('type') || '',
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    bedrooms: searchParams.get('bedrooms') || '',
-    neighborhood: searchParams.get('neighborhood') || '',
-    availability: searchParams.get('availability') || ''
+    prixMin: searchParams.get('prixMin') || '',
+    prixMax: searchParams.get('prixMax') || '',
+    nombreChambres: searchParams.get('nombreChambres') || '',
+    localisation: searchParams.get('localisation') || ''
   });
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState([]);
-  const [dateRange, setDateRange] = useState({
-    startDate: searchParams.get('startDate') || null,
-    endDate: searchParams.get('endDate') || null
-  });
+  const [types, setTypes] = useState([]);
+  const [localisations, setLocalisations] = useState([]);
+  const [sort, setSort] = useState('relevance');
 
-  // Fetch properties from API
+  // Récupérer les types et localisations
+  useEffect(() => {
+    const fetchMetaData = async () => {
+      try {
+        const [typesRes, localisationsRes] = await Promise.all([
+          fetch('http://localhost:4000/api/meta/types'),
+          fetch('http://localhost:4000/api/meta/localisations')
+        ]);
+        if (!typesRes.ok || !localisationsRes.ok) {
+          throw new Error('Erreur lors de la récupération des métadonnées');
+        }
+        const typesData = await typesRes.json();
+        const localisationsData = await localisationsRes.json();
+        setTypes(typesData || []);
+        setLocalisations(localisationsData || []);
+      } catch (err) {
+        console.error('Erreur:', err);
+      }
+    };
+    fetchMetaData();
+  }, []);
+
+  // Récupérer les biens
   useEffect(() => {
     const fetchProperties = async () => {
+      setLoading(true);
       try {
         const query = new URLSearchParams({
-          q: searchTerm,
+          titre: searchTerm,
           ...filters,
-          startDate: dateRange.startDate || '',
-          endDate: dateRange.endDate || ''
+          sort
         }).toString();
         
-        const response = await fetch(`/api/properties?${query}`);
-        const data = await response.json();
-        setProperties(data);
+        const response = await fetch(`http://localhost:4000/api/biens/filtre?${query}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la récupération des biens');
+        }
+        const { data } = await response.json();
+        const mappedProperties = data.map(bien => ({
+          id: bien._id,
+          title: bien.titre,
+          price: bien.prix,
+          type: bien.type?.nom || 'Inconnu',
+          location: bien.localisation?.ville || 'Inconnu',
+          bedrooms: bien.nombreChambres,
+          bathrooms: bien.nombreSallesBain,
+          surface: bien.surface,
+          images: bien.images || ['/placeholder.jpg'],
+          premium: false,
+          rating: 4.5
+        }));
+        setProperties(mappedProperties);
       } catch (error) {
-        console.error('Error fetching properties:', error);
+        console.error('Erreur lors de la récupération des biens:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProperties();
-  }, [searchTerm, filters, dateRange]);
-
-  const handleDateChange = (dates) => {
-    const [start, end] = dates;
-    setDateRange({ startDate: start, endDate: end });
-  };
+  }, [searchTerm, filters, sort]);
 
   const clearFilters = () => {
     setFilters({
       type: '',
-      minPrice: '',
-      maxPrice: '',
-      bedrooms: '',
-      neighborhood: '',
-      availability: ''
+      prixMin: '',
+      prixMax: '',
+      nombreChambres: '',
+      localisation: ''
     });
-    setDateRange({ startDate: null, endDate: null });
     setSearchTerm('');
+    setSort('relevance');
   };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
   };
-
-  const neighborhoods = [
-    { name: "Almadies", emoji: "🏝️" },
-    { name: "Plateau", emoji: "🏙️" },
-    { name: "Mermoz", emoji: "🌳" },
-    { name: "Fann", emoji: "🏛️" },
-    { name: "Ouakam", emoji: "🌊" },
-    { name: "Ngor", emoji: "🏖️" },
-    { name: "Yoff", emoji: "🐟" },
-    { name: "Sicap", emoji: "🏘️" }
-  ];
 
   if (loading) {
     return (
@@ -98,7 +118,7 @@ export default function PropertiesPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Trouvez Votre Propriété Idéale à Dakar</h1>
           <p className="text-xl text-[#e8d5b5] max-w-2xl mx-auto">
-            Réservez des logements uniques pour votre prochain séjour
+            Découvrez notre sélection de biens immobiliers à Dakar
           </p>
         </div>
       </div>
@@ -132,29 +152,6 @@ export default function PropertiesPage() {
           {showFilters && (
             <div className="bg-[#f5efe6] p-6 rounded-lg grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Dates</label>
-                <div className="flex items-center border border-[#e0d6cc] rounded-lg p-2 bg-white">
-                  <Calendar className="h-5 w-5 text-[#8d7364] mr-2" />
-                  <input
-                    type="date"
-                    placeholder="Arrivée"
-                    className="flex-1 outline-none text-sm"
-                    value={dateRange.startDate || ''}
-                    onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
-                  />
-                  <span className="mx-2">-</span>
-                  <input
-                    type="date"
-                    placeholder="Départ"
-                    className="flex-1 outline-none text-sm"
-                    value={dateRange.endDate || ''}
-                    onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})}
-                    min={dateRange.startDate}
-                  />
-                </div>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Type de bien</label>
                 <select
                   className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
@@ -162,35 +159,54 @@ export default function PropertiesPage() {
                   onChange={(e) => setFilters({...filters, type: e.target.value})}
                 >
                   <option value="">Tous types</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Appartement">Appartement</option>
-                  <option value="Maison">Maison</option>
-                  <option value="Studio">Studio</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Quartier</label>
-                <select
-                  className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
-                  value={filters.neighborhood}
-                  onChange={(e) => setFilters({...filters, neighborhood: e.target.value})}
-                >
-                  <option value="">Tous quartiers</option>
-                  {neighborhoods.map((area) => (
-                    <option key={area.name} value={area.name}>
-                      {area.emoji} {area.name}
-                    </option>
+                  {types.map(type => (
+                    <option key={type._id} value={type._id}>{type.nom}</option>
                   ))}
                 </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Chambres min</label>
+                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Localisation</label>
                 <select
                   className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
-                  value={filters.bedrooms}
-                  onChange={(e) => setFilters({...filters, bedrooms: e.target.value})}
+                  value={filters.localisation}
+                  onChange={(e) => setFilters({...filters, localisation: e.target.value})}
+                >
+                  <option value="">Toutes localisations</option>
+                  {localisations.map(loc => (
+                    <option key={loc._id} value={loc._id}>{loc.ville}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Prix minimum (FCFA)</label>
+                <input
+                  type="number"
+                  className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
+                  value={filters.prixMin}
+                  onChange={(e) => setFilters({...filters, prixMin: e.target.value})}
+                  placeholder="Prix min"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Prix maximum (FCFA)</label>
+                <input
+                  type="number"
+                  className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
+                  value={filters.prixMax}
+                  onChange={(e) => setFilters({...filters, prixMax: e.target.value})}
+                  placeholder="Prix max"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#5d4a3a] mb-2">Chambres minimum</label>
+                <select
+                  className="block w-full px-3 py-2 border border-[#e0d6cc] rounded-lg bg-white"
+                  value={filters.nombreChambres}
+                  onChange={(e) => setFilters({...filters, nombreChambres: e.target.value})}
                 >
                   <option value="">Toutes</option>
                   <option value="1">1+</option>
@@ -227,11 +243,6 @@ export default function PropertiesPage() {
             <h2 className="text-2xl font-bold text-[#5d4a3a]">
               {properties.length} {properties.length > 1 ? 'propriétés disponibles' : 'propriété disponible'}
             </h2>
-            <p className="text-[#7a6652]">
-              {dateRange.startDate && dateRange.endDate ? 
-                `Du ${new Date(dateRange.startDate).toLocaleDateString()} au ${new Date(dateRange.endDate).toLocaleDateString()}` : 
-                'Dates flexibles disponibles'}
-            </p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -252,14 +263,12 @@ export default function PropertiesPage() {
             
             <select 
               className="border border-[#e0d6cc] rounded-lg px-4 py-2 bg-white text-[#5d4a3a] focus:ring-2 focus:ring-[#8d7364]"
-              onChange={(e) => {
-                // Implement sorting logic
-              }}
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
             >
               <option value="relevance">Trier par : Pertinence</option>
-              <option value="price_asc">Prix croissant</option>
-              <option value="price_desc">Prix décroissant</option>
-              <option value="rating">Meilleures notes</option>
+              <option value="prix_asc">Prix croissant</option>
+              <option value="prix_desc">Prix décroissant</option>
             </select>
           </div>
         </div>
@@ -285,9 +294,7 @@ export default function PropertiesPage() {
             {properties.map((property) => (
               <PropertyCard 
                 key={property.id} 
-                property={property} 
-                formatPrice={formatPrice}
-                dateRange={dateRange}
+                property={property}
               />
             ))}
           </div>
@@ -297,10 +304,11 @@ export default function PropertiesPage() {
               <div key={property.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-1/3 h-64 relative">
-                    <img 
+                    <Image 
                       src={property.images[0]} 
                       alt={property.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                     {property.premium && (
                       <div className="absolute top-4 left-4 bg-[#8d7364] text-white px-3 py-1 rounded-full text-xs font-bold">
@@ -308,56 +316,57 @@ export default function PropertiesPage() {
                       </div>
                     )}
                   </div>
-                  <div className="md:w-2/3 p-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-bold text-[#5d4a3a]">{property.title}</h3>
-                        <p className="text-[#7a6652] flex items-center mt-1">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {property.location}
-                        </p>
-                      </div>
-                      <div className="text-2xl font-bold text-[#8d7364]">
-                        {formatPrice(property.pricePerNight)}
-                        <span className="text-sm font-normal text-gray-500"> / nuit</span>
+                  <div className="md:w-2/3 p-5">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{property.title}</h3>
+                      <div className="flex items-center bg-primary-100 text-primary-600 px-2 py-1 rounded text-sm">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {property.location.split(',')[0]}
                       </div>
                     </div>
-                    
-                    <div className="flex items-center mt-4 space-x-4">
-                      <div className="flex items-center text-[#7a6652]">
-                        <BedDouble className="h-5 w-5 mr-1" />
-                        <span>{property.bedrooms} chambres</span>
+
+                    <div className="flex items-center mb-4">
+                      <div className="flex mr-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`h-4 w-4 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                          />
+                        ))}
                       </div>
-                      <div className="flex items-center text-[#7a6652]">
-                        <Bath className="h-5 w-5 mr-1" />
-                        <span>{property.bathrooms} sdb</span>
-                      </div>
-                      <div className="flex items-center text-[#7a6652]">
-                        <Ruler className="h-5 w-5 mr-1" />
-                        <span>{property.surface} m²</span>
+                      <span className="text-sm text-gray-500">{property.rating}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex space-x-4">
+                        <span className="flex items-center text-sm text-gray-600">
+                          <BedDouble className="h-4 w-4 mr-1" /> {property.bedrooms}
+                        </span>
+                        <span className="flex items-center text-sm text-gray-600">
+                          <Bath className="h-4 w-4 mr-1" /> {property.bathrooms}
+                        </span>
+                        <span className="flex items-center text-sm text-gray-600">
+                          <Ruler className="h-4 w-4 mr-1" /> {property.surface}m²
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className="mt-4">
-                      <div className="flex items-center">
-                        <div className="flex mr-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`h-4 w-4 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-500">{property.rating}</span>
-                      </div>
+
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                      <span className="text-lg font-bold text-primary-600">
+                        {formatPrice(property.price)}
+                        <span className="text-sm font-normal text-gray-500">/mois</span>
+                      </span>
+                      <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                        {property.type}
+                      </span>
                     </div>
-                    
+
                     <div className="mt-6">
                       <Link 
-                        href={`/properties/${property.id}${dateRange.startDate ? `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}` : ''}`}
+                        href={`/properties/${property.id}`}
                         className="inline-block bg-[#8d7364] text-white px-6 py-2 rounded-lg hover:bg-[#6b594e] transition-colors"
                       >
-                        {property.instantBooking ? 'Réserver maintenant' : 'Voir les disponibilités'}
+                        Voir les détails
                       </Link>
                     </div>
                   </div>
@@ -372,20 +381,89 @@ export default function PropertiesPage() {
           <div className="p-8">
             <h3 className="text-2xl font-bold text-[#5d4a3a] mb-6">Guide des Quartiers de Dakar</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {neighborhoods.map((area) => (
+              {localisations.map((loc) => (
                 <button
-                  key={area.name} 
+                  key={loc._id} 
                   className="border border-[#e0d6cc] rounded-lg p-4 hover:bg-[#f5efe6] transition-colors text-left"
-                  onClick={() => setFilters({...filters, neighborhood: area.name})}
+                  onClick={() => setFilters({...filters, localisation: loc._id})}
                 >
-                  <div className="text-2xl mb-2">{area.emoji}</div>
-                  <h4 className="font-medium text-[#5d4a3a]">{area.name}</h4>
+                  <h4 className="font-medium text-[#5d4a3a]">{loc.ville}</h4>
                 </button>
               ))}
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PropertyCard({ property }) {
+  return (
+    <div className="group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 bg-white">
+      <Link href={`/properties/${property.id}`} className="block">
+        {property.premium && (
+          <div className="absolute top-4 left-4 z-10 bg-primary-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+            Premium
+          </div>
+        )}
+
+        <div className="relative h-60 overflow-hidden">
+          <Image
+            src={property.images[0]}
+            alt={property.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+        </div>
+
+        <div className="p-5">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{property.title}</h3>
+            <div className="flex items-center bg-primary-100 text-primary-600 px-2 py-1 rounded text-sm">
+              <MapPin className="h-4 w-4 mr-1" />
+              {property.location.split(',')[0]}
+            </div>
+          </div>
+
+          <div className="flex items-center mb-4">
+            <div className="flex mr-2">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  className={`h-4 w-4 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                />
+              ))}
+            </div>
+            <span className="text-sm text-gray-500">{property.rating}</span>
+          </div>
+
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex space-x-4">
+              <span className="flex items-center text-sm text-gray-600">
+                <BedDouble className="h-4 w-4 mr-1" /> {property.bedrooms}
+              </span>
+              <span className="flex items-center text-sm text-gray-600">
+                <Bath className="h-4 w-4 mr-1" /> {property.bathrooms}
+              </span>
+              <span className="flex items-center text-sm text-gray-600">
+                <Ruler className="h-4 w-4 mr-1" /> {property.surface}m²
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+            <span className="text-lg font-bold text-primary-600">
+              {property.price.toLocaleString()} FCFA
+              <span className="text-sm font-normal text-gray-500">/mois</span>
+            </span>
+            <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+              {property.type}
+            </span>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }

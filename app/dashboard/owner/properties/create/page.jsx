@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   FiSave, 
   FiX, 
@@ -17,29 +17,66 @@ import Link from 'next/link';
 export default function CreatePropertyPage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const contratInputRef = useRef(null);
   const [formData, setFormData] = useState({
-    title: '',
+    titre: '',
     description: '',
-    type: 'appartement',
-    price: '',
-    address: '',
-    bedrooms: 1,
-    bathrooms: 1,
-    area: '',
-    published: false,
-    images: []
+    type: '',
+    categorie: '',
+    localisation: '',
+    prix: '',
+    surface: '',
+    nombreChambres: 1,
+    nombreSallesBain: 1,
+    statut: 'disponible',
+    images: [],
+    contrat: null
   });
-  const [uploading, setUploading] = useState(false);
   const [previewImages, setPreviewImages] = useState([]);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [types, setTypes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [localisations, setLocalisations] = useState([]);
+
+  // Récupérer les types, catégories et localisations depuis les API
+  useEffect(() => {
+    const fetchMetaData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [typesRes, categoriesRes, localisationsRes] = await Promise.all([
+          fetch('http://localhost:4000/api/meta/types', { headers }),
+          fetch('http://localhost:4000/api/meta/categories', { headers }),
+          fetch('http://localhost:4000/api/meta/localisations', { headers })
+        ]);
+
+        if (!typesRes.ok || !categoriesRes.ok || !localisationsRes.ok) {
+          throw new Error('Erreur lors de la récupération des métadonnées');
+        }
+
+        const typesData = await typesRes.json();
+        const categoriesData = await categoriesRes.json();
+        const localisationsData = await localisationsRes.json();
+
+        setTypes(typesData || []);
+        setCategories(categoriesData || []);
+        setLocalisations(localisationsData || []);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchMetaData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = async (e) => {
-    const files = e.target.files;
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
     if (!files || files.length === 0) return;
 
     if (formData.images.length + files.length > 10) {
@@ -47,52 +84,33 @@ export default function CreatePropertyPage() {
       return;
     }
 
-    setUploading(true);
-    setError('');
-
-    try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`L'image ${file.name} est trop volumineuse (max 5MB)`);
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-        formData.append('folder', 'property_images');
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: 'POST',
-            body: formData
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Échec du téléchargement');
-        }
-
-        return await response.json();
-      });
-
-      const results = await Promise.all(uploadPromises);
-      const uploadedUrls = results.map(result => result.secure_url);
-
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...uploadedUrls]
-      }));
-
-      const newPreviews = Array.from(files).map(file => URL.createObjectURL(file));
-      setPreviewImages(prev => [...prev, ...newPreviews]);
-
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(err.message || 'Erreur lors du téléchargement des images');
-    } finally {
-      setUploading(false);
+    // Vérifier la taille des fichiers (max 5MB)
+    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      setError(`Certaines images sont trop volumineuses (max 5MB)`);
+      return;
     }
+
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files]
+    }));
+
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPreviewImages(prev => [...prev, ...newPreviews]);
+  };
+
+  const handleContratChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type !== 'application/pdf') {
+      setError('Veuillez sélectionner un fichier PDF pour le contrat');
+      return;
+    }
+    if (file && file.size > 10 * 1024 * 1024) {
+      setError('Le contrat PDF est trop volumineux (max 10MB)');
+      return;
+    }
+    setFormData(prev => ({ ...prev, contrat: file }));
   };
 
   const removeImage = (index) => {
@@ -101,7 +119,7 @@ export default function CreatePropertyPage() {
     setFormData(prev => ({ ...prev, images: newImages }));
 
     const newPreviews = [...previewImages];
-    URL.revokeObjectURL(newPreviews[index]); 
+    URL.revokeObjectURL(newPreviews[index]);
     newPreviews.splice(index, 1);
     setPreviewImages(newPreviews);
   };
@@ -110,32 +128,65 @@ export default function CreatePropertyPage() {
     fileInputRef.current?.click();
   };
 
+  const triggerContratInput = () => {
+    contratInputRef.current?.click();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setUploading(true);
 
     if (formData.images.length < 3) {
       setError('Veuillez ajouter au moins 3 photos');
+      setUploading(false);
+      return;
+    }
+
+    if (!formData.type || !formData.categorie || !formData.localisation) {
+      setError('Veuillez sélectionner un type, une catégorie et une localisation');
+      setUploading(false);
       return;
     }
 
     try {
-      const response = await fetch('/api/owner/properties', {
+      const data = new FormData();
+      data.append('titre', formData.titre);
+      data.append('description', formData.description);
+      data.append('prix', formData.prix);
+      data.append('type', formData.type);
+      data.append('categorie', formData.categorie);
+      data.append('localisation', formData.localisation);
+      data.append('surface', formData.surface);
+      data.append('nombreChambres', formData.nombreChambres);
+      data.append('nombreSallesBain', formData.nombreSallesBain);
+      data.append('statut', formData.statut);
+      formData.images.forEach((image, index) => {
+        data.append('images', image);
+      });
+      if (formData.contrat) {
+        data.append('contrat', formData.contrat);
+      }
+
+      const response = await fetch('http://localhost:4000/api/biens', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData),
+        body: data
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la création du bien');
       }
 
       router.push('/dashboard/owner/properties');
     } catch (err) {
       console.error('Error creating property:', err);
-      setError(err.message || 'Erreur lors de la création du bien');
+      setError(err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -177,8 +228,8 @@ export default function CreatePropertyPage() {
                 </div>
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
+                  name="titre"
+                  value={formData.titre}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Titre du bien"
@@ -196,10 +247,42 @@ export default function CreatePropertyPage() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <option value="appartement">Appartement</option>
-                <option value="maison">Maison</option>
-                <option value="villa">Villa</option>
-                <option value="bureau">Bureau</option>
+                <option value="">Sélectionner un type</option>
+                {types.map(type => (
+                  <option key={type._id} value={type._id}>{type.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Catégorie*</label>
+              <select
+                name="categorie"
+                value={formData.categorie}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Sélectionner une catégorie</option>
+                {categories.map(categorie => (
+                  <option key={categorie._id} value={categorie._id}>{categorie.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Localisation*</label>
+              <select
+                name="localisation"
+                value={formData.localisation}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Sélectionner une localisation</option>
+                {localisations.map(localisation => (
+                  <option key={localisation._id} value={localisation._id}>{localisation.ville}</option>
+                ))}
               </select>
             </div>
 
@@ -211,8 +294,8 @@ export default function CreatePropertyPage() {
                 </div>
                 <input
                   type="number"
-                  name="price"
-                  value={formData.price}
+                  name="prix"
+                  value={formData.prix}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Prix"
@@ -223,18 +306,19 @@ export default function CreatePropertyPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Adresse*</label>
+              <label className="block text-sm font-medium text-gray-700">Superficie (m²)*</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMapPin className="text-gray-400" />
+                  <FiLayers className="text-gray-400" />
                 </div>
                 <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
+                  type="number"
+                  name="surface"
+                  value={formData.surface}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Adresse complète"
+                  placeholder="Superficie"
+                  min="0"
                   required
                 />
               </div>
@@ -244,8 +328,8 @@ export default function CreatePropertyPage() {
               <label className="block text-sm font-medium text-gray-700">Chambres*</label>
               <input
                 type="number"
-                name="bedrooms"
-                value={formData.bedrooms}
+                name="nombreChambres"
+                value={formData.nombreChambres}
                 onChange={handleChange}
                 min="1"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -257,8 +341,8 @@ export default function CreatePropertyPage() {
               <label className="block text-sm font-medium text-gray-700">Salles de bain*</label>
               <input
                 type="number"
-                name="bathrooms"
-                value={formData.bathrooms}
+                name="nombreSallesBain"
+                value={formData.nombreSallesBain}
                 onChange={handleChange}
                 min="1"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -267,47 +351,48 @@ export default function CreatePropertyPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Superficie (m²)*</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLayers className="text-gray-400" />
-                </div>
-                <input
-                  type="number"
-                  name="area"
-                  value={formData.area}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Superficie"
-                  min="0"
-                  required
-                />
-              </div>
+              <label className="block text-sm font-medium text-gray-700">Statut*</label>
+              <select
+                name="statut"
+                value={formData.statut}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="disponible">Disponible</option>
+                <option value="réservé">Réservé</option>
+                <option value="vendu">Vendu</option>
+              </select>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Statut</label>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="published"
-                  checked={formData.published}
-                  onChange={(e) => setFormData({...formData, published: e.target.checked})}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Publier immédiatement</span>
-              </div>
+              <label className="block text-sm font-medium text-gray-700">Contrat (PDF)</label>
+              <input
+                type="file"
+                ref={contratInputRef}
+                accept="application/pdf"
+                onChange={handleContratChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={triggerContratInput}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-600 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center"
+              >
+                <FiUpload className="mr-2" />
+                {formData.contrat ? formData.contrat.name : 'Ajouter un contrat PDF'}
+              </button>
             </div>
           </div>
 
           <div className="space-y-1 mb-6">
             <label className="block text-sm font-medium text-gray-700">Photos du bien*</label>
-            <p className="text-xs text-gray-500 mb-2">Ajoutez au moins 3 photos (max 10)</p>
+            <p className="text-xs text-gray-500 mb-2">Ajoutez au moins 3 photos (max 10, 5MB par image)</p>
             
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleImageUpload}
+              onChange={handleFileChange}
               accept="image/*"
               multiple
               className="hidden"
@@ -351,7 +436,7 @@ export default function CreatePropertyPage() {
               <div className="flex items-center text-sm text-blue-600">
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
                 Téléchargement en cours...
               </div>

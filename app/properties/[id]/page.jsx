@@ -1,46 +1,48 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { MapPin, Star, Ruler, BedDouble, Bath, Calendar, Users, Heart } from 'lucide-react';
+import { MapPin, Star, Ruler, BedDouble, Bath } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import PropertyGallery from '@/components/PropertyGallery';
-import AmenitiesList from '@/components/AmenitiesList';
-import HostProfile from '@/components/HostProfile';
+import Image from 'next/image';
+import { use } from 'react';
 
 export default function PropertyPage({ params }) {
-  const searchParams = useSearchParams();
+  const { id } = use(params); // Déballer params avec React.use
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedDates, setSelectedDates] = useState({
-    start: searchParams.get('startDate') || '',
-    end: searchParams.get('endDate') || ''
-  });
-  const [guests, setGuests] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
       try {
-        const response = await fetch(`/api/properties/${params.id}`);
+        const response = await fetch(`http://localhost:4000/api/biens/${id}`);
         if (!response.ok) {
-          throw new Error('Property not found');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Propriété non trouvée');
         }
         const data = await response.json();
-        setProperty(data);
-        
-        // Check if property is in favorites
-        const favResponse = await fetch('/api/favorites/check', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        // Mapper les données au format attendu
+        setProperty({
+          id: data._id,
+          title: data.titre,
+          description: data.description || 'Aucune description disponible.',
+          price: data.prix,
+          type: data.type?.nom || 'Inconnu',
+          location: data.localisation?.ville || 'Inconnu',
+          bedrooms: data.nombreChambres,
+          bathrooms: data.nombreSallesBain,
+          surface: data.surface,
+          images: data.images || ['/placeholder.jpg'],
+          contract: data.contrat,
+          status: data.statut,
+          amenities: ['Wi-Fi', 'Climatisation', 'Cuisine'], // Valeur fictive
+          host: {
+            name: 'Agent Immobilier',
+            joined: 'Janvier 2025',
+            responseTime: 'Dans l\'heure'
           },
-          body: JSON.stringify({ property_id: params.id })
+          rating: 4.5 // Valeur fictive
         });
-        if (favResponse.ok) {
-          const favData = await favResponse.json();
-          setIsFavorite(favData.isFavorite);
-        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -49,42 +51,36 @@ export default function PropertyPage({ params }) {
     };
 
     fetchProperty();
-  }, [params.id]);
+  }, [id]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
   };
 
-  const calculateTotal = () => {
-    if (!selectedDates.start || !selectedDates.end || !property) return 0;
-    
-    const start = new Date(selectedDates.start);
-    const end = new Date(selectedDates.end);
-    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    
-    return nights * property.pricePerNight;
-  };
-
-  const handleReservation = () => {
-    // Redirect to reservation page with dates and guests
-    window.location.href = `/properties/${params.id}/reservation?startDate=${selectedDates.start}&endDate=${selectedDates.end}&guests=${guests}`;
-  };
-
-  const toggleFavorite = async () => {
+  const handleReservation = async () => {
+    if (!acceptTerms) {
+      alert('Vous devez accepter les termes du contrat pour réserver.');
+      return;
+    }
     try {
-      const response = await fetch('/api/favorites/toggle', {
+      const response = await fetch('http://localhost:4000/api/reservations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ property_id: params.id })
+        body: JSON.stringify({
+          bienId: id,
+          total: property.price // Prix mensuel
+        })
       });
-      
-      if (response.ok) {
-        setIsFavorite(!isFavorite);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la réservation');
       }
+      alert('Réservation effectuée avec succès !');
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error('Erreur lors de la réservation:', error);
+      alert('Échec de la réservation : ' + error.message);
     }
   };
 
@@ -115,23 +111,10 @@ export default function PropertyPage({ params }) {
       {/* Property Header */}
       <div className="bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-[#5d4a3a]">{property.title}</h1>
-              <div className="flex items-center mt-2 text-[#7a6652]">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{property.location}</span>
-              </div>
-            </div>
-            <button 
-              onClick={toggleFavorite}
-              className="p-2 rounded-full hover:bg-[#f5efe6]"
-              aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-            >
-              <Heart 
-                className={`h-6 w-6 ${isFavorite ? 'fill-[#8d7364] text-[#8d7364]' : 'text-[#8d7364]'}`} 
-              />
-            </button>
+          <h1 className="text-3xl font-bold text-[#5d4a3a]">{property.title}</h1>
+          <div className="flex items-center mt-2 text-[#7a6652]">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span>{property.location}</span>
           </div>
         </div>
       </div>
@@ -147,8 +130,8 @@ export default function PropertyPage({ params }) {
             <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-[#5d4a3a]">{property.type} entier · {property.neighborhood}</h2>
-                  <p className="text-[#7a6652]">{property.guests} {property.guests > 1 ? 'voyageurs' : 'voyageur'} · {property.bedrooms} {property.bedrooms > 1 ? 'chambres' : 'chambre'} · {property.bathrooms} {property.bathrooms > 1 ? 'salles de bain' : 'salle de bain'}</p>
+                  <h2 className="text-2xl font-bold text-[#5d4a3a]">{property.type} · {property.location}</h2>
+                  <p className="text-[#7a6652]">{property.bedrooms} {property.bedrooms > 1 ? 'chambres' : 'chambre'} · {property.bathrooms} {property.bathrooms > 1 ? 'salles de bain' : 'salle de bain'}</p>
                 </div>
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -164,7 +147,7 @@ export default function PropertyPage({ params }) {
                   </div>
                   <div className="flex items-center">
                     <BedDouble className="h-5 w-5 text-[#8d7364] mr-2" />
-                    <span className="text-[#5d4a3a]">{property.bedrooms} {property.bedrooms > 1 ? 'lits' : 'lit'}</span>
+                    <span className="text-[#5d4a3a]">{property.bedrooms} {property.bedrooms > 1 ? 'chambres' : 'chambre'}</span>
                   </div>
                   <div className="flex items-center">
                     <Bath className="h-5 w-5 text-[#8d7364] mr-2" />
@@ -182,9 +165,24 @@ export default function PropertyPage({ params }) {
                 <h3 className="text-xl font-bold text-[#5d4a3a] mb-4">Équipements</h3>
                 <AmenitiesList amenities={property.amenities} />
               </div>
+
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-[#5d4a3a] mb-4">Contrat</h3>
+                {property.contract ? (
+                  <a
+                    href={property.contract}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#8d7364] hover:underline"
+                  >
+                    Télécharger le contrat (PDF)
+                  </a>
+                ) : (
+                  <p className="text-[#7a6652]">Aucun contrat disponible.</p>
+                )}
+              </div>
             </div>
 
-            {/* Host Profile */}
             <HostProfile host={property.host} />
           </div>
 
@@ -193,8 +191,8 @@ export default function PropertyPage({ params }) {
             <div className="bg-white rounded-xl shadow-sm p-6 border border-[#e0d6cc]">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-2xl font-bold text-[#8d7364]">{formatPrice(property.pricePerNight)}</p>
-                  <p className="text-[#7a6652]">par nuit</p>
+                  <p className="text-2xl font-bold text-[#8d7364]">{formatPrice(property.price)}</p>
+                  <p className="text-[#7a6652]">par mois</p>
                 </div>
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -202,73 +200,90 @@ export default function PropertyPage({ params }) {
                 </div>
               </div>
 
-              <div className="border border-[#e0d6cc] rounded-lg mb-4">
-                <div className="grid grid-cols-2 border-b border-[#e0d6cc]">
-                  <div className="p-3 border-r border-[#e0d6cc]">
-                    <label className="block text-xs font-medium text-[#5d4a3a] mb-1">ARRIVÉE</label>
-                    <input
-                      type="date"
-                      className="w-full outline-none text-sm"
-                      value={selectedDates.start}
-                      onChange={(e) => setSelectedDates({...selectedDates, start: e.target.value})}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div className="p-3">
-                    <label className="block text-xs font-medium text-[#5d4a3a] mb-1">DÉPART</label>
-                    <input
-                      type="date"
-                      className="w-full outline-none text-sm"
-                      value={selectedDates.end}
-                      onChange={(e) => setSelectedDates({...selectedDates, end: e.target.value})}
-                      min={selectedDates.start || new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-                <div className="p-3">
-                  <label className="block text-xs font-medium text-[#5d4a3a] mb-1">VOYAGEURS</label>
-                  <select
-                    className="w-full outline-none text-sm"
-                    value={guests}
-                    onChange={(e) => setGuests(parseInt(e.target.value))}
-                  >
-                    {[...Array(property.maxGuests)].map((_, i) => (
-                      <option key={i+1} value={i+1}>{i+1} {i+1 > 1 ? 'personnes' : 'personne'}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="mb-4">
+                <label className="flex items-center text-sm text-[#5d4a3a]">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mr-2"
+                  />
+                  J'accepte les{' '}
+                  {property.contract ? (
+                    <a
+                      href={property.contract}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#8d7364] hover:underline ml-1"
+                    >
+                      termes du contrat
+                    </a>
+                  ) : (
+                    <span className="text-[#8d7364] ml-1">termes du contrat</span>
+                  )}
+                </label>
               </div>
-
-              {selectedDates.start && selectedDates.end && (
-                <div className="mb-4">
-                  <div className="flex justify-between py-2">
-                    <span className="text-[#5d4a3a]">
-                      {formatPrice(property.pricePerNight)} × {Math.ceil((new Date(selectedDates.end) - new Date(selectedDates.start)) / (1000 * 60 * 60 * 24))} nuits
-                    </span>
-                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-t border-[#e0d6cc] font-bold">
-                    <span className="text-[#5d4a3a]">Total</span>
-                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal())}</span>
-                  </div>
-                </div>
-              )}
 
               <button
                 onClick={handleReservation}
-                className="w-full bg-[#8d7364] text-white py-3 rounded-lg hover:bg-[#6b594e] transition-colors"
-                disabled={!selectedDates.start || !selectedDates.end}
+                className="w-full bg-[#8d7364] text-white py-3 rounded-lg hover:bg-[#816451] transition-colors disabled:bg-[#cbb6a9]  disabled:cursor-not-allowed"
+                disabled={!acceptTerms}
               >
-                {property.instantBooking ? 'Réserver' : 'Vérifier la disponibilité'}
+                Réserver
               </button>
 
-              {property.instantBooking && (
-                <p className="text-center text-sm text-[#7a6652] mt-2">
-                  Vous ne serez pas débité tout de suite
-                </p>
-              )}
+              <p className="text-center text-sm text-[#7a6652] mt-2">
+                Vous ne serez pas débité tout de suite
+              </p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PropertyGallery({ images }) {
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {images.map((image, index) => (
+          <div key={index} className="relative h-64">
+            <Image
+              src={image}
+              alt={`Image ${index + 1}`}
+              fill
+              className="object-cover rounded-lg"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AmenitiesList({ amenities }) {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      {amenities.map((amenity, index) => (
+        <div key={index} className="flex items-center text-[#5d4a3a]">
+          <span className="text-sm">{amenity}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HostProfile({ host }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-bold text-[#5d4a3a] mb-4">À propos de l'hôte</h3>
+      <div className="flex items-center">
+        <div className="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
+        <div>
+          <p className="font-medium text-[#5d4a3a]">{host.name}</p>
+          <p className="text-sm text-[#7a6652]">Inscrit en {host.joined}</p>
+          <p className="text-sm text-[#7a6652]">Temps de réponse : {host.responseTime}</p>
         </div>
       </div>
     </div>
