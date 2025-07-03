@@ -12,6 +12,10 @@ import favouriteRoutes from './routes/favouriteRoutes.js';
 import { Server } from 'socket.io'
 import http from 'http';
 import socket from './socket/socket.js'
+import reservationRoutes from './routes/reservationRoutes.js'
+import cron from './cronJobs.js';
+
+
 
 const port = process.env.PORT || 4000
 
@@ -44,6 +48,7 @@ app.use("/api/meta", metaRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/favourites/", favouriteRoutes);
+app.use('/api/reservations', reservationRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!!')
