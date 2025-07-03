@@ -1,12 +1,13 @@
 'use client';
-import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath } from 'lucide-react';
+import { Search, Filter, MapPin, ChevronDown, Star, Ruler, BedDouble, Bath, Heart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function PropertiesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('titre') || '');
   const [filters, setFilters] = useState({
     type: searchParams.get('type') || '',
@@ -22,24 +23,38 @@ export default function PropertiesPage() {
   const [types, setTypes] = useState([]);
   const [localisations, setLocalisations] = useState([]);
   const [sort, setSort] = useState('relevance');
+  const [favorites, setFavorites] = useState([]);
+  const [error, setError] = useState('');
 
-  // Récupérer les types et localisations
+  // Récupérer les types, localisations et favoris
   useEffect(() => {
     const fetchMetaData = async () => {
       try {
-        const [typesRes, localisationsRes] = await Promise.all([
+        const [typesRes, localisationsRes, favoritesRes] = await Promise.all([
           fetch('http://localhost:4000/api/meta/types'),
-          fetch('http://localhost:4000/api/meta/localisations')
+          fetch('http://localhost:4000/api/meta/localisations'),
+          localStorage.getItem('token') ? fetch('http://localhost:4000/api/favourites', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }) : Promise.resolve(null)
         ]);
-        if (!typesRes.ok || !localisationsRes.ok) {
-          throw new Error('Erreur lors de la récupération des métadonnées');
+        
+        if (typesRes.ok) {
+          const typesData = await typesRes.json();
+          setTypes(typesData || []);
         }
-        const typesData = await typesRes.json();
-        const localisationsData = await localisationsRes.json();
-        setTypes(typesData || []);
-        setLocalisations(localisationsData || []);
+        if (localisationsRes.ok) {
+          const localisationsData = await localisationsRes.json();
+          setLocalisations(localisationsData || []);
+        }
+        if (favoritesRes && favoritesRes.ok) {
+          const favoritesData = await favoritesRes.json();
+          setFavorites(favoritesData.data.map(fav => fav.id));
+        }
       } catch (err) {
         console.error('Erreur:', err);
+        setError('Erreur lors de la récupération des métadonnées');
       }
     };
     fetchMetaData();
@@ -78,6 +93,7 @@ export default function PropertiesPage() {
         setProperties(mappedProperties);
       } catch (error) {
         console.error('Erreur lors de la récupération des biens:', error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
@@ -98,6 +114,45 @@ export default function PropertiesPage() {
     setSort('relevance');
   };
 
+  const toggleFavorite = async (bienId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login?redirect=/properties');
+      return;
+    }
+
+    try {
+      const isFavorite = favorites.includes(bienId);
+      const url = isFavorite
+        ? `http://localhost:4000/api/favourites/remove/${bienId}`
+        : 'http://localhost:4000/api/favourites/add';
+      const method = isFavorite ? 'DELETE' : 'POST';
+      const body = isFavorite ? null : JSON.stringify({ bien: bienId });
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+      }
+
+      setFavorites(prev => 
+        isFavorite 
+          ? prev.filter(id => id !== bienId)
+          : [...prev, bienId]
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
   };
@@ -106,6 +161,20 @@ export default function PropertiesPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8d7364]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-[#5d4a3a] mb-4">Erreur</h2>
+          <p className="text-[#7a6652] mb-6">{error}</p>
+          <Link href="/" className="bg-[#8d7364] text-white px-6 py-2 rounded-lg">
+            Retour à l'accueil
+          </Link>
+        </div>
       </div>
     );
   }
@@ -295,83 +364,21 @@ export default function PropertiesPage() {
               <PropertyCard 
                 key={property.id} 
                 property={property}
+                isFavorite={favorites.includes(property.id)}
+                toggleFavorite={() => toggleFavorite(property.id)}
               />
             ))}
           </div>
         ) : (
           <div className="space-y-6">
             {properties.map((property) => (
-              <div key={property.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="md:w-1/3 h-64 relative">
-                    <Image 
-                      src={property.images[0]} 
-                      alt={property.title}
-                      fill
-                      className="object-cover"
-                    />
-                    {property.premium && (
-                      <div className="absolute top-4 left-4 bg-[#8d7364] text-white px-3 py-1 rounded-full text-xs font-bold">
-                        Premium
-                      </div>
-                    )}
-                  </div>
-                  <div className="md:w-2/3 p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{property.title}</h3>
-                      <div className="flex items-center bg-primary-100 text-primary-600 px-2 py-1 rounded text-sm">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {property.location.split(',')[0]}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center mb-4">
-                      <div className="flex mr-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`h-4 w-4 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-500">{property.rating}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex space-x-4">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <BedDouble className="h-4 w-4 mr-1" /> {property.bedrooms}
-                        </span>
-                        <span className="flex items-center text-sm text-gray-600">
-                          <Bath className="h-4 w-4 mr-1" /> {property.bathrooms}
-                        </span>
-                        <span className="flex items-center text-sm text-gray-600">
-                          <Ruler className="h-4 w-4 mr-1" /> {property.surface}m²
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                      <span className="text-lg font-bold text-primary-600">
-                        {formatPrice(property.price)}
-                        <span className="text-sm font-normal text-gray-500">/mois</span>
-                      </span>
-                      <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                        {property.type}
-                      </span>
-                    </div>
-
-                    <div className="mt-6">
-                      <Link 
-                        href={`/properties/${property.id}`}
-                        className="inline-block bg-[#8d7364] text-white px-6 py-2 rounded-lg hover:bg-[#6b594e] transition-colors"
-                      >
-                        Voir les détails
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PropertyCard 
+                key={property.id} 
+                property={property}
+                isFavorite={favorites.includes(property.id)}
+                toggleFavorite={() => toggleFavorite(property.id)}
+                isListView={true}
+              />
             ))}
           </div>
         )}
@@ -398,7 +405,98 @@ export default function PropertiesPage() {
   );
 }
 
-function PropertyCard({ property }) {
+function PropertyCard({ property, isFavorite, toggleFavorite, isListView = false }) {
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
+  };
+
+  if (isListView) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row">
+          <div className="md:w-1/3 h-64 relative">
+            <Image 
+              src={property.images[0]} 
+              alt={property.title}
+              fill
+              className="object-cover"
+            />
+            {property.premium && (
+              <div className="absolute top-4 left-4 bg-[#8d7364] text-white px-3 py-1 rounded-full text-xs font-bold">
+                Premium
+              </div>
+            )}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                toggleFavorite();
+              }}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white"
+            >
+              <Heart 
+                className={`h-5 w-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-500'}`}
+              />
+            </button>
+          </div>
+          <div className="md:w-2/3 p-5">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{property.title}</h3>
+              <div className="flex items-center bg-primary-100 text-primary-600 px-2 py-1 rounded text-sm">
+                <MapPin className="h-4 w-4 mr-1" />
+                {property.location.split(',')[0]}
+              </div>
+            </div>
+
+            <div className="flex items-center mb-4">
+              <div className="flex mr-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`h-4 w-4 ${i < Math.floor(property.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-gray-500">{property.rating}</span>
+            </div>
+
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex space-x-4">
+                <span className="flex items-center text-sm text-gray-600">
+                  <BedDouble className="h-4 w-4 mr-1" /> {property.bedrooms}
+                </span>
+                <span className="flex items-center text-sm text-gray-600">
+                  <Bath className="h-4 w-4 mr-1" /> {property.bathrooms}
+                </span>
+                <span className="flex items-center text-sm text-gray-600">
+                  <Ruler className="h-4 w-4 mr-1" /> {property.surface}m²
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+              <span className="text-lg font-bold text-primary-600">
+                {formatPrice(property.price)}
+                <span className="text-sm font-normal text-gray-500">/mois</span>
+              </span>
+              <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                {property.type}
+              </span>
+            </div>
+
+            <div className="mt-6">
+              <Link 
+                href={`/properties/${property.id}`}
+                className="inline-block bg-[#8d7364] text-white px-6 py-2 rounded-lg hover:bg-[#6b594e] transition-colors"
+              >
+                Voir les détails
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 bg-white">
       <Link href={`/properties/${property.id}`} className="block">
@@ -455,7 +553,7 @@ function PropertyCard({ property }) {
 
           <div className="flex justify-between items-center pt-4 border-t border-gray-100">
             <span className="text-lg font-bold text-primary-600">
-              {property.price.toLocaleString()} FCFA
+              {formatPrice(property.price)}
               <span className="text-sm font-normal text-gray-500">/mois</span>
             </span>
             <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
@@ -464,6 +562,17 @@ function PropertyCard({ property }) {
           </div>
         </div>
       </Link>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          toggleFavorite();
+        }}
+        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white"
+      >
+        <Heart 
+          className={`h-5 w-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-500'}`}
+        />
+      </button>
     </div>
   );
 }

@@ -1,14 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Home, Building, ShieldCheck, HeartHandshake, MapPin, Star, BedDouble, Bath, Ruler } from 'lucide-react';
+import { ArrowRight, Home, Building, ShieldCheck, HeartHandshake, MapPin, Star, BedDouble, Bath, Ruler, Heart } from 'lucide-react';
 import HeroBanner from '@/components/HeroBanner';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const [featuredProperties, setFeaturedProperties] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const stats = [
     { value: "500+", label: "Propriétés disponibles" },
@@ -40,19 +43,18 @@ export default function HomePage() {
     }
   ];
 
-  // Récupérer les biens dynamiquement
   useEffect(() => {
-    const fetchFeaturedProperties = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
+        // Récupérer les biens
         const response = await fetch('http://localhost:4000/api/biens/filtre?limit=8');
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Erreur lors de la récupération des biens');
         }
         const { data } = await response.json();
-        // Mapper les données du backend au format attendu par PropertyCard
         const mappedProperties = data.map(bien => ({
           id: bien._id,
           title: bien.titre,
@@ -63,18 +65,71 @@ export default function HomePage() {
           bathrooms: bien.nombreSallesBain,
           surface: bien.surface,
           images: bien.images || ['/placeholder.jpg'],
-          premium: false, // À ajuster si vous ajoutez un champ premium au modèle Bien
-          rating: 4.5 // Valeur fictive (ajouter un champ au modèle Bien si nécessaire)
+          premium: false,
+          rating: 4.5
         }));
         setFeaturedProperties(mappedProperties);
+
+        // Récupérer les favoris si l'utilisateur est connecté
+        const token = localStorage.getItem('token');
+        if (token) {
+          const favoritesResponse = await fetch('http://localhost:4000/api/favourites', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (favoritesResponse.ok) {
+            const favoritesData = await favoritesResponse.json();
+            setFavorites(favoritesData.data.map(fav => fav.id));
+          }
+        }
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchFeaturedProperties();
+    fetchData();
   }, []);
+
+  const toggleFavorite = async (bienId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push(`/login?redirect=/`);
+      return;
+    }
+
+    try {
+      const isFavorite = favorites.includes(bienId);
+      const url = isFavorite
+        ? `http://localhost:4000/api/favourites/remove/${bienId}`
+        : 'http://localhost:4000/api/favourites/add';
+      const method = isFavorite ? 'DELETE' : 'POST';
+      const body = isFavorite ? null : JSON.stringify({ bien: bienId });
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+      }
+
+      setFavorites(prev => 
+        isFavorite 
+          ? prev.filter(id => id !== bienId)
+          : [...prev, bienId]
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
     <main className="overflow-hidden">
@@ -120,7 +175,12 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProperties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
+                <PropertyCard 
+                  key={property.id} 
+                  property={property} 
+                  isFavorite={favorites.includes(property.id)}
+                  toggleFavorite={() => toggleFavorite(property.id)}
+                />
               ))}
             </div>
           )}
@@ -205,7 +265,7 @@ export default function HomePage() {
   );
 }
 
-function PropertyCard({ property }) {
+function PropertyCard({ property, isFavorite, toggleFavorite }) {
   return (
     <div className="group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 bg-white">
       <Link href={`/properties/${property.id}`} className="block">
@@ -271,6 +331,17 @@ function PropertyCard({ property }) {
           </div>
         </div>
       </Link>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          toggleFavorite();
+        }}
+        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white"
+      >
+        <Heart 
+          className={`h-5 w-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-500'}`}
+        />
+      </button>
     </div>
   );
 }

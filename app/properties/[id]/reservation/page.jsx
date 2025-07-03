@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, User, CreditCard, MapPin, Home, Shield } from 'lucide-react';
+import { Calendar, User, MapPin, Home, Shield } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ReservationPage({ params }) {
@@ -9,8 +9,8 @@ export default function ReservationPage({ params }) {
   const searchParams = useSearchParams();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -18,6 +18,7 @@ export default function ReservationPage({ params }) {
     phone: '',
     specialRequests: ''
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Get dates from URL
   const startDate = searchParams.get('startDate');
@@ -25,16 +26,37 @@ export default function ReservationPage({ params }) {
   const guests = searchParams.get('guests') || 1;
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push(`/login?redirect=/properties/${params.id}/reservation?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         // Fetch property details
-        const propResponse = await fetch(`/api/properties/${params.id}`);
-        if (!propResponse.ok) throw new Error('Property not found');
+        const propResponse = await fetch(`http://localhost:4000/api/biens/${params.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!propResponse.ok) throw new Error('Propriété non trouvée');
         const propData = await propResponse.json();
-        setProperty(propData);
+        setProperty({
+          id: propData._id,
+          title: propData.titre,
+          price: propData.prix,
+          neighborhood: propData.localisation?.ville || 'Inconnu',
+          images: propData.images || ['/placeholder.jpg'],
+          cancellationPolicy: propData.cancellationPolicy || "Annulation gratuite jusqu'à 7 jours avant l'arrivée."
+        });
 
         // Fetch user data
-        const userResponse = await fetch('/api/auth/me');
+        const userResponse = await fetch('http://localhost:4000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser(userData);
@@ -48,59 +70,72 @@ export default function ReservationPage({ params }) {
         }
 
         setLoading(false);
-      } catch (error) {
-        console.error('Error:', error);
-        router.push('/properties');
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [params.id, router]);
+  }, [params.id, router, startDate, endDate, guests]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
   };
 
-  const calculateTotal = () => {
-    if (!startDate || !endDate || !property) return 0;
-    
+  const calculateDuration = () => {
+    if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    
-    return nights * property.pricePerNight;
+    return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push(`/login?redirect=/properties/${params.id}/reservation?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
+      return;
+    }
+
+    if (!acceptTerms) {
+      setError('Vous devez accepter les conditions générales.');
+      return;
+    }
+
+    const dureeValidite = calculateDuration();
+    if (dureeValidite < 1) {
+      setError('La durée de location doit être d\'au moins 1 jour.');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/reservations', {
+      const response = await fetch('http://localhost:4000/api/reservations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          property_id: params.id,
-          start_date: startDate,
-          end_date: endDate,
-          guests: parseInt(guests),
-          payment_method: paymentMethod,
-          special_requests: formData.specialRequests,
-          total_amount: calculateTotal()
+          bien: params.id,
+          montant: property.price,
+          dureeValidite
         })
       });
 
       const data = await response.json();
-      
-      if (response.ok) {
-        router.push(`/properties/${params.id}/reservation/confirm?reservation_id=${data.id}`);
-      } else {
-        alert(data.error || 'Erreur lors de la réservation');
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push(`/login?redirect=/properties/${params.id}/reservation?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
+          return;
+        }
+        throw new Error(data.description || 'Erreur lors de la réservation');
       }
-    } catch (error) {
-      alert('Une erreur est survenue');
-      console.error('Error:', error);
+
+      window.location.href = data.url; // Rediriger vers Stripe
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -108,6 +143,20 @@ export default function ReservationPage({ params }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8d7364]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-[#5d4a3a] mb-4">Erreur</h2>
+          <p className="text-[#7a6652] mb-6">{error}</p>
+          <Link href="/properties" className="bg-[#8d7364] text-white px-6 py-2 rounded-lg">
+            Retour aux propriétés
+          </Link>
+        </div>
       </div>
     );
   }
@@ -195,89 +244,28 @@ export default function ReservationPage({ params }) {
                     />
                   </div>
                   
-                  <h2 className="text-xl font-bold text-[#5d4a3a] mb-4 flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2 text-[#8d7364]" />
-                    Paiement
-                  </h2>
-                  
-                  <div className="mb-6">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <button
-                        type="button"
-                        className={`px-4 py-2 rounded-lg border ${paymentMethod === 'card' ? 'border-[#8d7364] bg-[#f5efe6]' : 'border-[#e0d6cc]'}`}
-                        onClick={() => setPaymentMethod('card')}
-                      >
-                        Carte de crédit
-                      </button>
-                      <button
-                        type="button"
-                        className={`px-4 py-2 rounded-lg border ${paymentMethod === 'mobile' ? 'border-[#8d7364] bg-[#f5efe6]' : 'border-[#e0d6cc]'}`}
-                        onClick={() => setPaymentMethod('mobile')}
-                      >
-                        Mobile Money
-                      </button>
-                    </div>
-                    
-                    {paymentMethod === 'card' && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[#5d4a3a] mb-1">Numéro de carte</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg"
-                            placeholder="1234 5678 9012 3456"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-[#5d4a3a] mb-1">Date d'expiration</label>
-                            <input
-                              type="text"
-                              className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg"
-                              placeholder="MM/AA"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-[#5d4a3a] mb-1">CVV</label>
-                            <input
-                              type="text"
-                              className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg"
-                              placeholder="123"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {paymentMethod === 'mobile' && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[#5d4a3a] mb-1">Opérateur</label>
-                          <select className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg">
-                            <option value="">Sélectionnez un opérateur</option>
-                            <option value="orange">Orange Money</option>
-                            <option value="wave">Wave</option>
-                            <option value="free">Free Money</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#5d4a3a] mb-1">Numéro de téléphone</label>
-                          <input
-                            type="tel"
-                            className="w-full px-4 py-2 border border-[#e0d6cc] rounded-lg"
-                            placeholder="77 123 45 67"
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <div className="mb-4">
+                    <label className="flex items-center text-sm text-[#5d4a3a]">
+                      <input
+                        type="checkbox"
+                        checked={acceptTerms}
+                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        className="mr-2"
+                      />
+                      J'accepte les conditions générales et la politique de confidentialité
+                    </label>
                   </div>
                   
                   <button
                     type="submit"
-                    className="w-full bg-[#8d7364] text-white py-3 rounded-lg hover:bg-[#6b594e] transition-colors"
+                    className="w-full bg-[#8d7364] text-white py-3 rounded-lg hover:bg-[#6b594e] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={!acceptTerms}
                   >
                     Confirmer et payer
                   </button>
+                  <p className="text-center text-sm text-[#7a6652] mt-2">
+                    Vous serez redirigé vers Stripe pour le paiement
+                  </p>
                 </form>
               </div>
               
@@ -287,7 +275,7 @@ export default function ReservationPage({ params }) {
                   Politique d'annulation
                 </h2>
                 <p className="text-[#5d4a3a] mb-4">
-                  {property.cancellationPolicy || "Annulation gratuite jusqu'à 7 jours avant l'arrivée. Ensuite, annulation jusqu'à 24 heures avant l'arrivée pour un remboursement de 50%."}
+                  {property.cancellationPolicy}
                 </p>
                 <p className="text-[#7a6652] text-sm">
                   En effectuant cette réservation, vous acceptez les conditions générales et la politique de confidentialité.
@@ -325,7 +313,8 @@ export default function ReservationPage({ params }) {
                     <div className="flex justify-between mb-2">
                       <span className="text-[#5d4a3a]">Dates</span>
                       <span className="text-[#5d4a3a]">
-                        {new Date(startDate).toLocaleDateString('fr-FR')} - {new Date(endDate).toLocaleDateString('fr-FR')}
+                        {startDate ? new Date(startDate).toLocaleDateString('fr-FR') : 'Non défini'} - 
+                        {endDate ? new Date(endDate).toLocaleDateString('fr-FR') : 'Non défini'}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -339,23 +328,19 @@ export default function ReservationPage({ params }) {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
                     <span className="text-[#5d4a3a]">
-                      {formatPrice(property.pricePerNight)} × {Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))} nuits
+                      {formatPrice(property.price)} × {calculateDuration()} jours
                     </span>
-                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#5d4a3a]">Frais de service</span>
-                    <span className="text-[#5d4a3a]">{formatPrice(calculateTotal() * 0.1)}</span>
+                    <span className="text-[#5d4a3a]">{formatPrice(property.price)}</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between border-t border-[#e0d6cc] pt-4 mb-6">
                   <span className="font-bold text-[#5d4a3a]">Total</span>
-                  <span className="font-bold text-[#5d4a3a]">{formatPrice(calculateTotal() * 1.1)}</span>
+                  <span className="font-bold text-[#5d4a3a]">{formatPrice(property.price)}</span>
                 </div>
                 
                 <p className="text-sm text-[#7a6652]">
-                  Vous ne serez pas débité tout de suite. Le paiement sera effectué à l'approbation du propriétaire.
+                  Vous serez redirigé vers Stripe pour finaliser le paiement.
                 </p>
               </div>
             </div>
